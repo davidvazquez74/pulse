@@ -1,0 +1,24 @@
+name: Sanity (manual)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  ok:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - run: |
+          echo "Sanity run at $(date -u +%FT%TZ)" | tee sanity.txt
+          ls -la
+      - name: Commit a tiny file (prove write perms)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add sanity.txt
+          git commit -m "chore: sanity [skip ci]" || echo "Nothing to commit"
+          git push || echo "Push skipped"
