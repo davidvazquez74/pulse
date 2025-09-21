@@ -11,10 +11,13 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -63,6 +66,7 @@ jobs:
 
           const MAX = 3;
           const parser = new XMLParser({ ignoreAttributes:false, attributeNamePrefix:"" });
+
           const strip = h => String(h||"").replace(/<[^>]+>/g,"").replace(/\s+/g," ").trim();
           const norm  = t => String(t||"").toLowerCase().replace(/[^\p{L}\p{N}\s]/gu," ").replace(/\s+/g," ").trim();
 
@@ -82,6 +86,7 @@ jobs:
 
           async function fetchFeed(u){
             const r = await fetch(u, { headers:{'User-Agent':'PulseBot/1.0'} });
+            if (!r.ok) throw new Error('HTTP '+r.status+' at '+u);
             const txt = await r.text();
             return parse(txt, new URL(u).hostname);
           }
@@ -106,7 +111,12 @@ jobs:
             for (const [cat, urls] of Object.entries(FEEDS)){
               let all=[];
               for (const u of urls){
-                try{ all.push(...await fetchFeed(u)); } catch(e){ console.error("Feed error:", u, e.message); }
+                try{
+                  const items = await fetchFeed(u);
+                  all.push(...items);
+                }catch(e){
+                  console.error("Feed error:", u, e.message);
+                }
               }
 
               const top = byIntersection(all);
@@ -133,11 +143,31 @@ jobs:
             console.log("Wrote data/latest.json");
           }
 
-          main().catch(e=>{ console.error(e); process.exit(1); });
+          // Atrapamos cualquier error para que el workflow no explote sin JSON.
+          main().catch(e=>{
+            console.error("Build FAILED, writing fallback JSON:", e);
+            const dir = path.join(__dirname, "../data");
+            fs.mkdirSync(dir, { recursive: true });
+            const fallback = {
+              updated_at: new Date().toISOString(),
+              version: "fallback",
+              cataluna: [], espana: [], rioja: [], global: []
+            };
+            fs.writeFileSync(path.join(dir,"latest.json"), JSON.stringify(fallback, null, 2));
+            process.exit(0); // no romper el job
+          });
 EOF
 
-      - name: Build latest.json
+      - name: Build latest.json (tolerant)
         run: node scripts/build_latest.mjs
+
+      - name: Upload latest.json (artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: latest.json
+          path: data/latest.json
+          if-no-files-found: error
+          retention-days: 1
 
       - name: Commit changes (if any)
         run: |
