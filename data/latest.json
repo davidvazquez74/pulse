@@ -1,5 +1,5 @@
 {
-  "updated_at": "2025-09-21T18:46:38.666122+00:00",
+  "updated_at": "2025-09-21T19:08:35.155369+00:00",
   "version": "live",
   "cataluna": [
     {
@@ -35,6 +35,26 @@
   ],
   "espana": [
     {
+      "title": "Última hora del conflicto en Oriente Próximo, en directo | Los tanques israelíes se adentran más en Ciudad de Gaza",
+      "summary": "Al menos cinco muertos, tres de ellos niños, en un ataque israelí contra el sur de Líbano | Netanyahu afirma que “no se establecerá un Estado palestino” y que anunciará la respuesta de Israel tras su reunión con Trump",
+      "url": "https://elpais.com/internacional/2025-09-21/ultima-hora-del-conflicto-en-oriente-proximo-en-directo.html",
+      "source": "feeds.elpais.com",
+      "published_at": "2025-09-21T18:57:33+00:00",
+      "img": "",
+      "location": "ES",
+      "category": "otros"
+    },
+    {
+      "title": "Decenas de miles de personas despiden a Charlie Kirk en un ‘funeral de Estado’",
+      "summary": "Trump y buena parte de su gabinete honran al líder juvenil MAGA en un estadio de Arizona con capacidad para 73.000 personas que se llenó dos horas antes del inicio del memorial, dejando fuera a una multitud",
+      "url": "https://elpais.com/internacional/2025-09-21/decenas-de-miles-de-personas-hacen-cola-durante-horas-para-el-funeral-de-estado-de-charlie-kirk.html",
+      "source": "feeds.elpais.com",
+      "published_at": "2025-09-21T18:45:00+00:00",
+      "img": "",
+      "location": "ES",
+      "category": "otros"
+    },
+    {
       "title": "Díaz, perdida en el espacio",
       "summary": "&nbsp;Leer",
       "url": "https://www.elmundo.es/espana/2025/09/21/68cece56fdddffcc028b458a.html",
@@ -43,35 +63,25 @@
       "img": "",
       "location": "ES",
       "category": "otros"
-    },
-    {
-      "title": "Martinelli salva al Arsenal de la tiranía de Rodri",
-      "summary": "El brasileño se inventa el 1-1 en el descuento de un partido dominado por el mediocentro español del Manchester City",
-      "url": "https://elpais.com/deportes/2025-09-21/martinelli-salva-al-arsenal-de-la-tirania-de-rodri.html",
-      "source": "feeds.elpais.com",
-      "published_at": "2025-09-21T18:38:10+00:00",
-      "img": "",
-      "location": "ES",
-      "category": "otros"
-    },
-    {
-      "title": "Un avión espía ruso sobre el Báltico pone de nuevo en guardia a la OTAN",
-      "summary": "Estonia pide una reunión urgente del consejo de seguridad de la ONU para tratar las violaciones de su espacio aéreo de aeronaves del Kremlin",
-      "url": "https://elpais.com/internacional/2025-09-21/un-avion-espia-ruso-sobre-el-baltico-pone-de-nuevo-en-guardia-a-la-otan.html",
-      "source": "feeds.elpais.com",
-      "published_at": "2025-09-21T17:54:00+00:00",
-      "img": "",
-      "location": "ES",
-      "category": "otros"
     }
   ],
   "rioja": [
+    {
+      "title": "La solidez de Iztueta y el tino de Jaka tienen premio",
+      "summary": "Mariezkurrena no pudo demostrar el nivel de los últimos partidos y este domingo alternó aciertos con demasiados errores no forzados",
+      "url": "https://www.larioja.com/deportes/pelota/solidez-iztueta-tino-jaka-premio-20250921204444-nt.html",
+      "source": "www.larioja.com",
+      "published_at": "2025-09-21T20:44:45+00:00",
+      "img": "",
+      "location": "La Rioja",
+      "category": "otros"
+    },
     {
       "title": "El desfile de carrozas ya tiene sus ganadores de San Mateo 2025",
       "summary": "Los galardonados han sido la Asociación de vecinos Los Lirios (primer premio), la Peña la Uva (segundo premio) y la Peña Aster (tercer premio)",
       "url": "https://www.larioja.com/logrono/san-mateo/desfile-carrozas-ganadores-2025-20250921203229-nt.html",
       "source": "www.larioja.com",
-      "published_at": "2025-09-21T20:38:30+00:00",
+      "published_at": "2025-09-21T20:42:49+00:00",
       "img": "",
       "location": "La Rioja",
       "category": "otros"
@@ -82,16 +92,6 @@
       "url": "https://www.larioja.com/deportes/futbol/liga-primera/atletico-sabe-ganar-mallorca-20250921182826-ntrc.html",
       "source": "www.larioja.com",
       "published_at": "2025-09-21T20:27:50+00:00",
-      "img": "",
-      "location": "La Rioja",
-      "category": "otros"
-    },
-    {
-      "title": "Jefferson-Wooden releva a Fraser-Pryce",
-      "summary": "La estadounidense logra tres medallas de oro en el Mundial que sirve de despedida a la gran jamaicana",
-      "url": "https://www.larioja.com/deportes/mas-deportes/jeffersonwooden-releva-fraserpryce-20250921191927-ntrc.html",
-      "source": "www.larioja.com",
-      "published_at": "2025-09-21T19:50:45+00:00",
       "img": "",
       "location": "La Rioja",
       "category": "otros"
