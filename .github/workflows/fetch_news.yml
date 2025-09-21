@@ -1,7 +1,7 @@
 name: Update News (hourly)
 
 on:
-  workflow_dispatch:          # permite ejecutarlo a mano en la UI
+  workflow_dispatch:          # botón "Run workflow"
   schedule:
     - cron: "0 * * * *"       # cada hora
 
@@ -11,41 +11,22 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+        with: { fetch-depth: 0 }
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
 
-      - name: Show environment
-        run: |
-          echo "PWD=$PWD"
-          node -v
-          npm -v
-          ls -la
-
       - name: Ensure folders + seed JSON
         run: |
           mkdir -p scripts data
           if [ ! -f data/latest.json ]; then
-            cat > data/latest.json <<'JSON'
-            {
-              "updated_at": "1970-01-01T00:00:00Z",
-              "version": "seed",
-              "cataluna": [],
-              "espana": [],
-              "rioja": [],
-              "global": []
-            }
-JSON
+            printf '%s\n' '{"updated_at":"1970-01-01T00:00:00Z","version":"seed","cataluna":[],"espana":[],"rioja":[],"global":[]}' > data/latest.json
           fi
-          ls -la data
 
       - name: Install dependencies (no package.json)
         run: npm i --no-save node-fetch@3 fast-xml-parser@4
@@ -81,8 +62,7 @@ JSON
           };
 
           const MAX = 3;
-          const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: "" });
-
+          const parser = new XMLParser({ ignoreAttributes:false, attributeNamePrefix:"" });
           const strip = h => String(h||"").replace(/<[^>]+>/g,"").replace(/\s+/g," ").trim();
           const norm  = t => String(t||"").toLowerCase().replace(/[^\p{L}\p{N}\s]/gu," ").replace(/\s+/g," ").trim();
 
