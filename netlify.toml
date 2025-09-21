@@ -1,0 +1,9 @@
+# Netlify config (GitHub-connected)
+[build]
+  publish = "."
+  command = ""
+
+[[headers]]
+  for = "/data/latest.json"
+  [headers.values]
+  Cache-Control = "no-store"
