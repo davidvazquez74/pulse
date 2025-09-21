@@ -62,63 +62,50 @@ jobs:
               with urllib.request.urlopen(req, timeout=timeout) as r:
                   return r.read()
 
-          def text(el):
-              return (el.text or "").strip() if el is not None else ""
-
           def strip_html(s):
               return re.sub(r"<[^>]+>", "", s or "").strip()
 
           def to_iso(s):
+              for fmt in ("%a, %d %b %Y %H:%M:%S %Z", "%a, %d %b %Y %H:%M:%S %z"):
+                  try:
+                      return datetime.fromtimestamp(time.mktime(time.strptime(s[:31], fmt)), tz=timezone.utc).isoformat()
+                  except Exception:
+                      pass
               try:
-                  # Try HTTP-style dates first
-                  return datetime.fromtimestamp(time.mktime(time.strptime(s[:31], "%a, %d %b %Y %H:%M:%S %Z")), tz=timezone.utc).isoformat()
-              except Exception:
-                  pass
-              try:
-                  # Fallback: any parsed date
                   return datetime.fromisoformat(s.replace("Z","+00:00")).astimezone(timezone.utc).isoformat()
               except Exception:
                   return datetime.now(tz=timezone.utc).isoformat()
 
           def parse_items(xml_bytes, source_host):
-              # Works for RSS and Atom without external libs
               try:
                   root = ET.fromstring(xml_bytes)
               except ET.ParseError:
                   return []
-              # namespaces (best-effort)
-              ns = {}
-              for k,v in root.attrib.items():
-                  if k.startswith("xmlns"):
-                      ns[k.split(":",1)[-1]] = v
-
               items = []
-              # RSS <item>
               for it in root.findall(".//item"):
-                  title = text(it.find("title"))
-                  link = text(it.find("link"))
-                  desc = text(it.find("description"))
-                  pub  = text(it.find("pubDate"))
-                  enclosure = it.find("enclosure")
-                  img = enclosure.attrib.get("url","") if enclosure is not None else ""
+                  title = (it.findtext("title") or "").strip() or "(sin título)"
+                  link  = (it.findtext("link") or "").strip()
+                  desc  = (it.findtext("description") or "").strip()
+                  pub   = (it.findtext("pubDate") or "").strip()
+                  enc   = it.find("enclosure")
+                  img   = enc.get("url","") if enc is not None else ""
                   items.append({
-                      "title": title or "(sin título)",
+                      "title": title,
                       "url": link,
                       "summary": strip_html(desc),
                       "published_at": to_iso(pub) if pub else datetime.now(tz=timezone.utc).isoformat(),
                       "img": img,
                       "source": source_host,
                   })
-              # Atom <entry>
               if not items:
                   for it in root.findall(".//{*}entry"):
-                      title = text(it.find("{*}title"))
+                      title = (it.findtext("{*}title") or "").strip() or "(sin título)"
                       link_el = it.find("{*}link")
-                      link = link_el.attrib.get("href","") if link_el is not None else ""
-                      summary = text(it.find("{*}summary")) or text(it.find("{*}content"))
-                      updated = text(it.find("{*}updated")) or text(it.find("{*}published"))
+                      link  = (link_el.get("href","") if link_el is not None else "").strip()
+                      summary = (it.findtext("{*}summary") or it.findtext("{*}content") or "").strip()
+                      updated = (it.findtext("{*}updated") or it.findtext("{*}published") or "").strip()
                       items.append({
-                          "title": title or "(sin título)",
+                          "title": title,
                           "url": link,
                           "summary": strip_html(summary),
                           "published_at": to_iso(updated) if updated else datetime.now(tz=timezone.utc).isoformat(),
@@ -127,8 +114,6 @@ jobs:
                       })
               return items
 
-              # end parse_items
-
           def norm_title(t):
               t = (t or "").lower()
               t = re.sub(r"[^\w\sáéíóúñüç]", " ", t, flags=re.UNICODE)
@@ -136,7 +121,6 @@ jobs:
               return t[:80]
 
           def intersect_top(group):
-              # Prioriza noticias repetidas entre feeds del mismo bloque
               bag = {}
               for it in group:
                   k = norm_title(it["title"])
@@ -151,37 +135,44 @@ jobs:
           def collect():
               out = {"updated_at": datetime.now(tz=timezone.utc).isoformat(), "version":"live",
                      "cataluna":[], "espana":[], "rioja":[], "global":[]}
+              union_all = []
+              by_cat = {}
               for cat, urls in FEEDS.items():
                   all_items = []
                   for u in urls:
                       try:
                           xml = fetch(u)
                           items = parse_items(xml, urllib.request.urlparse(u).hostname)
-                          all_items.extend(items)
+                          all_items.extend(items); union_all.extend(items)
                       except Exception as e:
                           print("Feed error:", u, repr(e), file=sys.stderr)
-                          continue
+                  by_cat[cat] = all_items
+
+              for cat, all_items in by_cat.items():
                   ranked = intersect_top(all_items)
-                  used = set()
-                  final = []
+                  used = set(); final = []
                   for it in ranked:
                       k = norm_title(it["title"])
                       if k not in used:
-                          used.add(k)
-                          final.append(it)
-                      if len(final) >= MAX:
-                          break
+                          used.add(k); final.append(it)
+                      if len(final) >= MAX: break
                   if len(final) < MAX:
                       all_items.sort(key=lambda x: x["published_at"], reverse=True)
                       for it in all_items:
                           k = norm_title(it["title"])
                           if k not in used:
-                              used.add(k)
-                              final.append(it)
-                          if len(final) >= MAX:
-                              break
+                              used.add(k); final.append(it)
+                          if len(final) >= MAX: break
+                  if not final and union_all:
+                      union_all.sort(key=lambda x: x["published_at"], reverse=True)
+                      for it in union_all:
+                          k = norm_title(it["title"])
+                          if k not in used:
+                              used.add(k); final.append(it)
+                          if len(final) >= MAX: break
+
                   mapped = []
-                  for it in final:
+                  for it in final[:MAX]:
                       mapped.append({
                           "title": it["title"],
                           "summary": it["summary"],
@@ -193,19 +184,20 @@ jobs:
                           "category": "otros"
                       })
                   out[cat] = mapped
+
               return out
 
           def main():
               try:
                   out = collect()
               except Exception as e:
-                  # Fallback que nunca rompe el job
                   out = {"updated_at": datetime.now(tz=timezone.utc).isoformat(), "version":"fallback",
                          "cataluna":[], "espana":[], "rioja":[], "global":[]}
                   print("Build FAILED, writing fallback JSON:", repr(e), file=sys.stderr)
               with open("data/latest.json","w",encoding="utf-8") as f:
                   json.dump(out, f, ensure_ascii=False, indent=2)
-              print("Wrote data/latest.json")
+              print("Wrote data/latest.json with sizes:",
+                    {k: len(v) for k,v in out.items() if isinstance(v,list)})
 
           if __name__ == "__main__":
               main()
@@ -224,4 +216,3 @@ jobs:
             git push || true
           else
             echo "No changes"
-          fi
