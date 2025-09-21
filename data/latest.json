@@ -1,8 +1,132 @@
 {
-  "updated_at": "2025-09-21T17:43:50.607287Z",
-  "version": "seed",
-  "cataluna": [],
-  "espana": [],
-  "rioja": [],
-  "global": []
+  "updated_at": "2025-09-21T18:35:47.093021+00:00",
+  "version": "live",
+  "cataluna": [
+    {
+      "title": "El Meteocat pone fecha al fin de la ola de calor que abrasa Catalunya",
+      "summary": "En plena canícula por la ola de calor, las altas temperaturas siguen sin dar tregua en Catalunya.&nbsp;No solo eso, sino que la bolsa de aire africano que abrasa España se mantendrá sobre la Península unos días más. Las masas de aire cálidas, de unos 24 C a 1.500 metros de altura, harán subir la temperatura notablemente y no se descarta que el mercurio bata nuevos récords durante el fin de semana.Seguir leyendo....",
+      "url": "https://www.elperiodico.com/es/tiempo/20250815/meteocat-ola-de-calor-barcelona-cataluna-dv-loc-120618760?utm_source=rss-noticias&amp;utm_medium=feed&amp;utm_campaign=catalunya",
+      "source": "www.elperiodico.com",
+      "published_at": "2025-09-21T18:35:48.691896+00:00",
+      "img": "",
+      "location": "Cataluña",
+      "category": "otros"
+    },
+    {
+      "title": "¿Qué supermercados están abiertos hoy, 15 de agosto, en Barcelona y resto de Catalunya? Horario de Lidl, Mercadona y resto de centros",
+      "summary": "El 15 de agosto, festividad de la Asunción de la Virgen, es uno de los festivos más señalados del calendario en España y Catalunya. Este año, además, cae en viernes, lo que permite a muchos españoles disfrutar de un puente de verano.&nbsp;Seguir leyendo....",
+      "url": "https://www.elperiodico.com/es/catalunya/20250815/barcelona-supermercados-abiertos-15-agosto-mercadona-carrefour-dv-loc-120623458?utm_source=rss-noticias&amp;utm_medium=feed&amp;utm_campaign=catalunya",
+      "source": "www.elperiodico.com",
+      "published_at": "2025-09-21T18:35:48.691882+00:00",
+      "img": "",
+      "location": "Cataluña",
+      "category": "otros"
+    },
+    {
+      "title": "El origen casi secreto de la crema catalana: un error en un convento medieval",
+      "summary": "La gastronomía catalana es reconocida a nivel mundial por su rica diversidad, tradición y sabores mediterráneos.&nbsp;Seguir leyendo....",
+      "url": "https://www.elperiodico.com/es/catalunya/20250815/crema-catalana-origen-cataluna-platos-tipicos-postres-gastronomia-dv-loc-120525396?utm_source=rss-noticias&amp;utm_medium=feed&amp;utm_campaign=catalunya",
+      "source": "www.elperiodico.com",
+      "published_at": "2025-09-21T18:35:48.691869+00:00",
+      "img": "",
+      "location": "Cataluña",
+      "category": "otros"
+    }
+  ],
+  "espana": [
+    {
+      "title": "Tres de los identificados en el tumulto de la Vuelta fueron detenidos en Francia por integración en ETA",
+      "summary": "Los arrestos se llevaron a cabo en 1997, 2002 y 2004 y uno de los implicados participó en tres atentados&nbsp;Leer",
+      "url": "https://www.elmundo.es/espana/2025/09/17/68caf4a9e9cf4ad7018b45ae.html",
+      "source": "e00-elmundo.uecdn.es",
+      "published_at": "2025-09-21T18:35:50.854154+00:00",
+      "img": "",
+      "location": "ES",
+      "category": "otros"
+    },
+    {
+      "title": "Sánchez abre una brecha al Ejército en adiestramiento y armamento con su apagón a Israel y el CNI blinda la lucha antiterrorista",
+      "summary": "Habrá retrasos en entregas de materiales que ya estaban programados y se busca alternativa para la formación de pilotos con Italia, Alemania o Francia como opciones&nbsp;Leer",
+      "url": "https://www.elmundo.es/espana/2025/09/17/68cafc0b21efa0a93f8b457d.html",
+      "source": "e00-elmundo.uecdn.es",
+      "published_at": "2025-09-21T18:35:50.854145+00:00",
+      "img": "",
+      "location": "ES",
+      "category": "otros"
+    },
+    {
+      "title": "El PP acude de nuevo al TSJM contra la Oficina de Conflictos de Intereses por \"obviar\" la relación de Begoña Gómez con la matriz de Air Europa",
+      "summary": "El organismo archiva la denuncia de los 'populares' sin incluir el convenio que la mujer de Sánchez suscribió con una filial de Globalia. Gamarra cree que el organismo \"actúa al servicio del Gobierno\"&nbsp;Leer",
+      "url": "https://www.elmundo.es/espana/2025/09/18/68cb0048fc6c8357308b45a3.html",
+      "source": "e00-elmundo.uecdn.es",
+      "published_at": "2025-09-21T18:35:50.854135+00:00",
+      "img": "",
+      "location": "ES",
+      "category": "otros"
+    }
+  ],
+  "rioja": [
+    {
+      "title": "¿Por qué 'resucitan' los matrimonios lavanda?",
+      "summary": "Esta opción usada antaño sobre todo como tapadera para la homosexualidad ha dado un giro: ahora la generación Z la ha reinterpretado",
+      "url": "https://www.larioja.com/vivir/relaciones-humanas/resucitan-matrimonios-lavanda-20250911190837-ntrc.html",
+      "source": "www.larioja.com",
+      "published_at": "2025-09-21T18:35:51.901850+00:00",
+      "img": "",
+      "location": "La Rioja",
+      "category": "otros"
+    },
+    {
+      "title": "¿Existen asientos de avión más seguros que otros?",
+      "summary": "Pese a los titulares aparatosos, sigues teniendo más probabilidades de morir sobre una bicicleta que surcando los cielos",
+      "url": "https://www.larioja.com/vivir/tecnologia/existen-asientos-avion-seguros-20250903000503-ntrc.html",
+      "source": "www.larioja.com",
+      "published_at": "2025-09-21T18:35:51.901842+00:00",
+      "img": "",
+      "location": "La Rioja",
+      "category": "otros"
+    },
+    {
+      "title": "Estos son los 764 viticultores que recibirán ayudas para compensar las pérdidas",
+      "summary": "Se había solicitado ayuda, a través de la oficina virtual, para 1.307 parcelas de viñedo correspondientes a 784 beneficiaros",
+      "url": "https://www.larioja.com/lomejordelvinoderioja/764-viticultores-recibiran-ayudas-compensar-perdidas-20250912091751-nt.html",
+      "source": "www.larioja.com",
+      "published_at": "2025-09-21T18:35:51.901834+00:00",
+      "img": "",
+      "location": "La Rioja",
+      "category": "otros"
+    }
+  ],
+  "global": [
+    {
+      "title": "Drones vs. Lasers",
+      "summary": "We explore the math problem facing NATO — and one possible solution.",
+      "url": "https://www.nytimes.com/2025/09/19/briefing/nato-drones-russia.html",
+      "source": "rss.nytimes.com",
+      "published_at": "2025-09-21T18:35:52.054414+00:00",
+      "img": "",
+      "location": "global",
+      "category": "otros"
+    },
+    {
+      "title": "Watch: Philippines anti-corruption protests turn violent",
+      "summary": "Thousands of demonstrators took to the streets of the capital Manila, with some clashing with police.",
+      "url": "https://www.bbc.com/news/videos/c3vzz1p1r76o?at_medium=RSS&at_campaign=rss",
+      "source": "feeds.bbci.co.uk",
+      "published_at": "2025-09-21T10:10:45+00:00",
+      "img": "",
+      "location": "global",
+      "category": "otros"
+    },
+    {
+      "title": "BBC's Steve Rosenberg attends 'Russia's answer to Eurovision'",
+      "summary": "Vietnam was among 23 countries competing in a glitzy Russian song contest, revived three years after Russia was banned from Eurovision.",
+      "url": "https://www.bbc.com/news/videos/cvg998q0557o?at_medium=RSS&at_campaign=rss",
+      "source": "feeds.bbci.co.uk",
+      "published_at": "2025-09-21T04:17:42+00:00",
+      "img": "",
+      "location": "global",
+      "category": "otros"
+    }
+  ]
 }
