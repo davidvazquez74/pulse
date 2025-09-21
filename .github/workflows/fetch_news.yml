@@ -1,9 +1,9 @@
 name: Update News (hourly, python-stable)
 
 on:
-  workflow_dispatch:          # botón "Run workflow"
+  workflow_dispatch:
   schedule:
-    - cron: "0 * * * *"       # cada hora
+    - cron: "0 * * * *"
 
 permissions:
   contents: write
@@ -207,7 +207,9 @@ jobs:
         run: python scripts/build_latest.py
 
       - name: Commit changes (if any)
+        shell: bash
         run: |
+          set -euo pipefail
           if [[ -n "$(git status --porcelain data/latest.json)" ]]; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -216,3 +218,4 @@ jobs:
             git push || true
           else
             echo "No changes"
+          fi
