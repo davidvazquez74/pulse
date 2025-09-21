@@ -1,4 +1,4 @@
-name: Update News (hourly)
+name: Update News (hourly, python-stable)
 
 on:
   workflow_dispatch:          # botón "Run workflow"
@@ -19,11 +19,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
       - name: Ensure folders + seed JSON
         run: |
           mkdir -p scripts data
@@ -31,141 +26,193 @@ jobs:
             printf '%s\n' '{"updated_at":"1970-01-01T00:00:00Z","version":"seed","cataluna":[],"espana":[],"rioja":[],"global":[]}' > data/latest.json
           fi
 
-      - name: Install dependencies (no package.json)
-        run: npm i --no-save node-fetch@3 fast-xml-parser@4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
-      - name: Write build script (scripts/build_latest.mjs)
+      - name: Write build script (Python, no deps)
         run: |
-          cat > scripts/build_latest.mjs <<'EOF'
-          #!/usr/bin/env node
-          import fs from 'node:fs';
-          import path from 'node:path';
-          import fetch from 'node-fetch';
-          import { XMLParser } from 'fast-xml-parser';
-          import { fileURLToPath } from 'node:url';
+          cat > scripts/build_latest.py <<'PY'
+          import sys, json, re, time, urllib.request, urllib.error, xml.etree.ElementTree as ET
+          from datetime import datetime, timezone
 
-          const __filename = fileURLToPath(import.meta.url);
-          const __dirname  = path.dirname(__filename);
-
-          const FEEDS = {
-            cataluna: [
-              "https://www.lavanguardia.com/mvc/feed/rss/catalunya",
-              "https://www.elperiodico.com/es/rss/catalunya/rss.xml"
-            ],
-            espana: [
-              "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/portada",
-              "https://www.rtve.es/rss/",
-              "https://e00-elmundo.uecdn.es/elmundo/rss/espana.xml"
-            ],
-            rioja: ["https://www.larioja.com/rss/2.0/portada"],
-            global: [
-              "https://feeds.bbci.co.uk/news/world/rss.xml",
-              "https://rss.nytimes.com/services/xml/rss/nyt/World.xml"
-            ]
-          };
-
-          const MAX = 3;
-          const parser = new XMLParser({ ignoreAttributes:false, attributeNamePrefix:"" });
-          const strip = h => String(h||"").replace(/<[^>]+>/g,"").replace(/\s+/g," ").trim();
-          const norm  = t => String(t||"").toLowerCase().replace(/[^\p{L}\p{N}\s]/gu," ").replace(/\s+/g," ").trim();
-
-          function parse(xml, source){
-            const obj = parser.parse(xml);
-            const ch  = obj.rss?.channel || obj.feed;
-            let its = ch?.item ? (Array.isArray(ch.item)? ch.item : [ch.item]) :
-                      ch?.entry? (Array.isArray(ch.entry)? ch.entry: [ch.entry]) : [];
-            return its.map(it=>{
-              const title = it.title?.["#text"] || it.title || "(sin título)";
-              const link  = it.link?.href || (typeof it.link==="string"? it.link : (Array.isArray(it.link)? it.link[0] : "")) || "";
-              const pub   = it.pubDate || it.published || it.updated || new Date().toISOString();
-              const img   = (it.enclosure?.url) || "";
-              return {
-                title:String(title).trim(),
-                url:String(link).trim(),
-                source,
-                published_at:new Date(pub).toISOString(),
-                summary:strip(it.description || it.summary || ""),
-                img
-              };
-            });
+          FEEDS = {
+              "cataluna": [
+                  "https://www.lavanguardia.com/mvc/feed/rss/catalunya",
+                  "https://www.elperiodico.com/es/rss/catalunya/rss.xml",
+              ],
+              "espana": [
+                  "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/portada",
+                  "https://www.rtve.es/rss/",
+                  "https://e00-elmundo.uecdn.es/elmundo/rss/espana.xml",
+              ],
+              "rioja": [
+                  "https://www.larioja.com/rss/2.0/portada",
+              ],
+              "global": [
+                  "https://feeds.bbci.co.uk/news/world/rss.xml",
+                  "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
+              ],
           }
+          MAX = 3
 
-          async function fetchFeed(u){
-            const r = await fetch(u, { headers:{'User-Agent':'PulseBot/1.0'} });
-            if (!r.ok) throw new Error('HTTP '+r.status+' at '+u);
-            const txt = await r.text();
-            return parse(txt, new URL(u).hostname);
-          }
+          def fetch(url, timeout=20):
+              req = urllib.request.Request(url, headers={"User-Agent":"PulseBot/1.0"})
+              with urllib.request.urlopen(req, timeout=timeout) as r:
+                  return r.read()
 
-          function byIntersection(list){
-            const m=new Map();
-            for(const it of list){
-              const k=norm(it.title).slice(0,80);
-              if(!m.has(k)) m.set(k,{it,count:0,latest:it.published_at});
-              const e=m.get(k);
-              e.count++;
-              if(new Date(it.published_at)>new Date(e.latest)) e.latest=it.published_at;
-            }
-            return [...m.values()]
-              .sort((a,b)=> (b.count-a.count) || (new Date(b.latest)-new Date(a.latest)))
-              .map(e=>e.it);
-          }
+          def text(el):
+              return (el.text or "").strip() if el is not None else ""
 
-          async function main(){
-            const out = { updated_at:new Date().toISOString(), version:"live", cataluna:[], espana:[], rioja:[], global:[] };
+          def strip_html(s):
+              return re.sub(r"<[^>]+>", "", s or "").strip()
 
-            for (const [cat, urls] of Object.entries(FEEDS)){
-              let all=[];
-              for (const u of urls){
-                try{
-                  const items = await fetchFeed(u);
-                  all.push(...items);
-                }catch(e){
-                  console.error("Feed error:", u, e.message);
-                }
-              }
+          def to_iso(s):
+              try:
+                  # Try HTTP-style dates first
+                  return datetime.fromtimestamp(time.mktime(time.strptime(s[:31], "%a, %d %b %Y %H:%M:%S %Z")), tz=timezone.utc).isoformat()
+              except Exception:
+                  pass
+              try:
+                  # Fallback: any parsed date
+                  return datetime.fromisoformat(s.replace("Z","+00:00")).astimezone(timezone.utc).isoformat()
+              except Exception:
+                  return datetime.now(tz=timezone.utc).isoformat()
 
-              const top = byIntersection(all);
-              const used=new Set(), keyOf=x=>norm(x.title).slice(0,80), final=[];
+          def parse_items(xml_bytes, source_host):
+              # Works for RSS and Atom without external libs
+              try:
+                  root = ET.fromstring(xml_bytes)
+              except ET.ParseError:
+                  return []
+              # namespaces (best-effort)
+              ns = {}
+              for k,v in root.attrib.items():
+                  if k.startswith("xmlns"):
+                      ns[k.split(":",1)[-1]] = v
 
-              for(const it of top){ const k=keyOf(it); if(!used.has(k)){ used.add(k); final.push(it);} if(final.length>=MAX) break; }
-              if(final.length<MAX){
-                for(const it of all.sort((a,b)=>new Date(b.published_at)-new Date(a.published_at))){
-                  const k=keyOf(it); if(!used.has(k)){ used.add(k); final.push(it);} if(final.length>=MAX) break;
-                }
-              }
+              items = []
+              # RSS <item>
+              for it in root.findall(".//item"):
+                  title = text(it.find("title"))
+                  link = text(it.find("link"))
+                  desc = text(it.find("description"))
+                  pub  = text(it.find("pubDate"))
+                  enclosure = it.find("enclosure")
+                  img = enclosure.attrib.get("url","") if enclosure is not None else ""
+                  items.append({
+                      "title": title or "(sin título)",
+                      "url": link,
+                      "summary": strip_html(desc),
+                      "published_at": to_iso(pub) if pub else datetime.now(tz=timezone.utc).isoformat(),
+                      "img": img,
+                      "source": source_host,
+                  })
+              # Atom <entry>
+              if not items:
+                  for it in root.findall(".//{*}entry"):
+                      title = text(it.find("{*}title"))
+                      link_el = it.find("{*}link")
+                      link = link_el.attrib.get("href","") if link_el is not None else ""
+                      summary = text(it.find("{*}summary")) or text(it.find("{*}content"))
+                      updated = text(it.find("{*}updated")) or text(it.find("{*}published"))
+                      items.append({
+                          "title": title or "(sin título)",
+                          "url": link,
+                          "summary": strip_html(summary),
+                          "published_at": to_iso(updated) if updated else datetime.now(tz=timezone.utc).isoformat(),
+                          "img": "",
+                          "source": source_host,
+                      })
+              return items
 
-              out[cat] = final.map(it=>({
-                title: it.title, summary: it.summary, url: it.url, source: it.source,
-                published_at: it.published_at, img: it.img || "",
-                location: cat==="global" ? "global" : (cat==="espana" ? "ES" : (cat==="cataluna" ? "Cataluña" : "La Rioja")),
-                category: "otros"
-              }));
-            }
+              # end parse_items
 
-            const dir = path.join(__dirname, "../data");
-            fs.mkdirSync(dir, { recursive: true });
-            fs.writeFileSync(path.join(dir, "latest.json"), JSON.stringify(out, null, 2));
-            console.log("Wrote data/latest.json");
-          }
+          def norm_title(t):
+              t = (t or "").lower()
+              t = re.sub(r"[^\w\sáéíóúñüç]", " ", t, flags=re.UNICODE)
+              t = re.sub(r"\s+", " ", t).strip()
+              return t[:80]
 
-          // No rompas el job si algo falla: escribe fallback y sal OK
-          main().catch(e=>{
-            console.error("Build FAILED, writing fallback JSON:", e);
-            const dir = path.join(__dirname, "../data");
-            fs.mkdirSync(dir, { recursive: true });
-            const fallback = {
-              updated_at: new Date().toISOString(),
-              version: "fallback",
-              cataluna: [], espana: [], rioja: [], global: []
-            };
-            fs.writeFileSync(path.join(dir,"latest.json"), JSON.stringify(fallback, null, 2));
-            process.exit(0);
-          });
-EOF
+          def intersect_top(group):
+              # Prioriza noticias repetidas entre feeds del mismo bloque
+              bag = {}
+              for it in group:
+                  k = norm_title(it["title"])
+                  if k not in bag:
+                      bag[k] = {"item": it, "cnt": 0, "latest": it["published_at"]}
+                  bag[k]["cnt"] += 1
+                  if it["published_at"] > bag[k]["latest"]:
+                      bag[k]["latest"] = it["published_at"]
+              arr = sorted(bag.values(), key=lambda x: (x["cnt"], x["latest"]), reverse=True)
+              return [x["item"] for x in arr]
 
-      - name: Build latest.json (tolerant)
-        run: node scripts/build_latest.mjs
+          def collect():
+              out = {"updated_at": datetime.now(tz=timezone.utc).isoformat(), "version":"live",
+                     "cataluna":[], "espana":[], "rioja":[], "global":[]}
+              for cat, urls in FEEDS.items():
+                  all_items = []
+                  for u in urls:
+                      try:
+                          xml = fetch(u)
+                          items = parse_items(xml, urllib.request.urlparse(u).hostname)
+                          all_items.extend(items)
+                      except Exception as e:
+                          print("Feed error:", u, repr(e), file=sys.stderr)
+                          continue
+                  ranked = intersect_top(all_items)
+                  used = set()
+                  final = []
+                  for it in ranked:
+                      k = norm_title(it["title"])
+                      if k not in used:
+                          used.add(k)
+                          final.append(it)
+                      if len(final) >= MAX:
+                          break
+                  if len(final) < MAX:
+                      all_items.sort(key=lambda x: x["published_at"], reverse=True)
+                      for it in all_items:
+                          k = norm_title(it["title"])
+                          if k not in used:
+                              used.add(k)
+                              final.append(it)
+                          if len(final) >= MAX:
+                              break
+                  mapped = []
+                  for it in final:
+                      mapped.append({
+                          "title": it["title"],
+                          "summary": it["summary"],
+                          "url": it["url"],
+                          "source": it["source"],
+                          "published_at": it["published_at"],
+                          "img": it.get("img",""),
+                          "location": "global" if cat=="global" else ("ES" if cat=="espana" else ("Cataluña" if cat=="cataluna" else "La Rioja")),
+                          "category": "otros"
+                      })
+                  out[cat] = mapped
+              return out
+
+          def main():
+              try:
+                  out = collect()
+              except Exception as e:
+                  # Fallback que nunca rompe el job
+                  out = {"updated_at": datetime.now(tz=timezone.utc).isoformat(), "version":"fallback",
+                         "cataluna":[], "espana":[], "rioja":[], "global":[]}
+                  print("Build FAILED, writing fallback JSON:", repr(e), file=sys.stderr)
+              with open("data/latest.json","w",encoding="utf-8") as f:
+                  json.dump(out, f, ensure_ascii=False, indent=2)
+              print("Wrote data/latest.json")
+
+          if __name__ == "__main__":
+              main()
+          PY
+
+      - name: Build latest.json (Python)
+        run: python scripts/build_latest.py
 
       - name: Commit changes (if any)
         run: |
