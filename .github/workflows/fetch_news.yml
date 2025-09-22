@@ -23,20 +23,24 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install helpers
+        run: |
+          python -m pip install --upgrade pip
+          pip install charset-normalizer
+
       - name: Ensure folders + seed
         run: |
-          mkdir -p data
+          mkdir -p data site/data
           if [ ! -f data/latest.json ]; then
             printf '%s\n' '{"updated_at":"1970-01-01T00:00:00Z","version":"seed","cataluna":[],"espana":[],"rioja":[],"global":[]}' > data/latest.json
           fi
-          ls -la data
 
-      - name: Build latest.json (impact engine + geo-filter + backfill)
+      - name: Build latest.json (robust decode + impact + geofilter)
         run: |
-          set -euo pipefail
           python - <<'PY'
           import json, re, urllib.request, urllib.parse, xml.etree.ElementTree as ET
           from datetime import datetime, timezone
+          from charset_normalizer import from_bytes as detect_charset
 
           FEEDS = {
             "cataluna": [
@@ -56,86 +60,83 @@ jobs:
           }
           MAX = 3
 
-          def fetch(url):
+          CTRL_RX = re.compile(r'[\x00-\x08\x0b\x0c\x0e-\x1f]')
+          def clean_txt(s):
+              return CTRL_RX.sub(' ', (s or '')).replace('\\n',' ').replace('  ',' ').strip()
+
+          def robust_text(url):
               req = urllib.request.Request(url, headers={"User-Agent":"PulseBot/1.0"})
-              with urllib.request.urlopen(req, timeout=25) as r:
-                  return r.read()
+              with urllib.request.urlopen(req, timeout=25) as resp:
+                  data = resp.read()
+                  enc = resp.headers.get_content_charset()
+                  if not enc:
+                      det = detect_charset(data).best()
+                      enc = det.encoding if det else 'utf-8'
+                  try:
+                      text = data.decode(enc, errors='replace')
+                  except Exception:
+                      text = data.decode('latin-1', errors='replace')
+                  return CTRL_RX.sub(' ', text).replace('\\\\','\\')
 
-          def strip_html(s):
-              import html
-              s = html.unescape(s or "")
-              return re.sub(r"<[^>]+>", "", s).strip()
-
-          def safe_iso(s):
+          def parse(xml_str, host):
+              items=[]
               try:
-                  return datetime.fromisoformat((s or "").replace("Z","+00:00")).astimezone(timezone.utc).isoformat()
-              except Exception:
-                  return datetime.now(tz=timezone.utc).isoformat()
-
-          def parse(xml_bytes, host):
-              items = []
-              try:
-                  root = ET.fromstring(xml_bytes)
+                  root = ET.fromstring(xml_str.encode('utf-8'))
               except ET.ParseError:
                   return items
-              for it in root.findall(".//item"):
+              for it in root.findall('.//item'):
                   items.append({
-                      "title": (it.findtext("title") or "").strip() or "(sin título)",
-                      "url": (it.findtext("link") or "").strip(),
-                      "summary": strip_html(it.findtext("description") or ""),
-                      "published_at": safe_iso(it.findtext("pubDate")),
-                      "img": "",
-                      "source": host,
+                      "title": clean_txt(it.findtext('title')) or '(sin título)',
+                      "url": (it.findtext('link') or '').strip(),
+                      "summary": clean_txt(it.findtext('description')),
+                      "published_at": datetime.now(tz=timezone.utc).isoformat(),
+                      "img": "", "source": host
                   })
-              for it in root.findall(".//{*}entry"):
-                  link_el = it.find("{*}link")
-                  link = link_el.get("href","") if link_el is not None else ""
+              for it in root.findall('.//{*}entry'):
+                  link_el = it.find('{*}link'); link = link_el.get('href','') if link_el is not None else ''
                   items.append({
-                      "title": (it.findtext("{*}title") or "").strip() or "(sin título)",
+                      "title": clean_txt(it.findtext('{*}title')) or '(sin título)',
                       "url": link.strip(),
-                      "summary": strip_html(it.findtext("{*}summary") or it.findtext("{*}content") or ""),
-                      "published_at": safe_iso(it.findtext("{*}updated") or it.findtext("{*}published")),
-                      "img": "",
-                      "source": host,
+                      "summary": clean_txt(it.findtext('{*}summary') or it.findtext('{*}content')),
+                      "published_at": datetime.now(tz=timezone.utc).isoformat(),
+                      "img": "", "source": host
                   })
               return items
 
+          # Impact engine
           KW = {
-            r"(eur[ií]bor|bce|hipoteca|inflaci[oó]n)":       ("finanzas",2,"este mes","vigilar"),
+            r"(eur[ií]bor|bce|hipoteca|inflaci[oó]n)": ("finanzas",2,"este mes","vigilar"),
             r"(gasolina|di[eé]sel|petr[oó]leo|electricidad|gas)": ("energía",2,"esta semana","vigilar"),
-            r"(huelga|paro).*(tren|metro|bus|vuelo)":          ("movilidad",2,"hoy","planificar"),
-            r"(alquiler|vivienda|inmobiliaria)":               ("vivienda",2,"este mes","vigilar"),
-            r"(impuestos|iva|subsidio|bono)":                  ("impuestos",2,"este mes","vigilar"),
+            r"(huelga|paro).*(tren|metro|bus|vuelo)": ("movilidad",2,"hoy","planificar"),
+            r"(alquiler|vivienda|inmobiliaria)": ("vivienda",2,"este mes","vigilar"),
+            r"(impuestos|iva|subsidio|bono)": ("impuestos",2,"este mes","vigilar"),
             r"(dana|temporal|lluvias|ola de calor|inundaci[oó]n)": ("clima",2,"hoy","planificar"),
-            r"(cad[aá]ver|muertos?|asesinato|violencia grave)": ("seguridad",1,"hoy","vigilar"),
+            r"(cad[aá]ver|muertos?|asesinato|violencia)": ("seguridad",1,"hoy","vigilar"),
             r"(concierto|festival|partido|marat[oó]n|celebraci[oó]n)": ("eventos",2,"esta semana","planificar"),
-            r"(champions|liga|mundial|copa|bar[cç]a|real madrid)":    ("deporte",2,"hoy","planificar"),
-            r"(covid|vacuna|brote|epidemia|hospital)":         ("salud",2,"esta semana","vigilar"),
-            r"\\bIA\\b|ciberseguridad|hackeo":                 ("tecnología",1,"esta semana","FYI"),
-            r"empresa|fusi[oó]n|resultados|cotizaci[oó]n":     ("negocios",1,"este mes","FYI"),
-            r"juicio|sentencia|tribunal|fiscal":               ("justicia",1,"esta semana","FYI"),
+            r"(champions|liga|mundial|copa|bar[cç]a|real madrid)": ("deporte",2,"hoy","planificar"),
+            r"(covid|vacuna|brote|epidemia|hospital)": ("salud",2,"esta semana","vigilar"),
+            r"\\bIA\\b|ciberseguridad|hackeo": ("tecnología",1,"esta semana","FYI"),
+            r"empresa|fusi[oó]n|resultados|cotizaci[oó]n": ("negocios",1,"este mes","FYI"),
+            r"juicio|sentencia|tribunal|fiscal": ("justicia",1,"esta semana","FYI"),
             r"incendio|contaminaci[oó]n|vertido|desastre ambiental": ("medioambiente",2,"hoy","vigilar"),
           }
+          SENSITIVE = re.compile(r"(cad[aá]ver|muertos?|asesinato|violencia|epidemia|brote|covid)", re.I)
           TAGS = {"finanzas","economia","negocios","energía","movilidad","vivienda","empleo","impuestos","clima",
                   "salud","educacion","eventos","deporte","cultura","seguridad","justicia","internacional","tecnología",
                   "medioambiente","transporte","salud_publica","otros"}
-          SENSITIVE = re.compile(r"(cad[aá]ver|muertos?|asesinato|violencia|epidemia|brote|covid)", re.I)
 
-          def clamp_words(s, maxw):
-              w = re.split(r"\\s+", s.strip())
+          def cw(s,maxw):
+              w=re.split(r"\\s+", (s or '').strip())
               return " ".join(w[:maxw])
 
-          def no_emoji(s): return re.sub(r"[\\U0001F300-\\U0001FAFF\\u2600-\\u27BF]", "", s)
-
           def impact(it):
-              t = f"{it['title']} {it['summary']}".lower()
-              tag, sev, horizon, action = ("otros", 0, "sin plazo", "FYI")
-              for rx, conf in KW.items():
-                  if re.search(rx, t):
-                      tag, sev, horizon, action = conf; break
+              t=f"{it['title']} {it['summary']}".lower()
+              tag,sev,hz,act=("otros",0,"sin plazo","FYI")
+              for rx,conf in KW.items():
+                  if re.search(rx,t): tag,sev,hz,act=conf; break
               sensitive = SENSITIVE.search(t) is not None
 
-              adult = {
+              adult_map={
                 "finanzas":"Revisa tu hipoteca y calcula cambios de cuota este mes.",
                 "energía":"Compara precios y ajusta consumo esta semana para reducir factura.",
                 "movilidad":"Planifica rutas y horarios alternativos hoy para evitar retrasos.",
@@ -151,13 +152,13 @@ jobs:
                 "justicia":"Toma nota; posibles efectos de cumplimiento.",
                 "medioambiente":"Evita zonas afectadas; sigue avisos.",
                 "otros":"Sin efecto directo en tu día a día."
-              }.get(tag,"Sin efecto directo en tu día a día.")
-              adult = clamp_words(no_emoji(adult), 22)
+              }
+              adult=cw(adult_map.get(tag,"Sin efecto directo en tu día a día."),22)
 
               if sensitive:
-                  teen = "Info importante. Sigue indicaciones y no difundas rumores."
+                  teen="Información importante. Sigue indicaciones y no difundas rumores."
               else:
-                  teen = {
+                  teen_map={
                     "movilidad":"Organízate: puede haber lío en calles/metro. 🚇",
                     "eventos":"Llega con tiempo: colas y tráfico. 🎟️",
                     "deporte":"Habrá mucha gente; metro mejor. ⚽",
@@ -166,54 +167,48 @@ jobs:
                     "clima":"Prepárate: clima duro, cuídate.",
                     "tecnología":"Actualiza apps y pon 2FA. 🔐",
                     "salud":"Cuídate y sigue consejos.",
-                  }.get(tag, "Tranqui, solo para estar al día.")
-              teen = clamp_words(teen, 18)
-              em = re.findall(r"[\\U0001F300-\\U0001FAFF\\u2600-\\u27BF]", teen)
-              if len(em) > 1:
-                  teen = re.sub(r"([\\U0001F300-\\U0001FAFF\\u2600-\\u27BF]).*$", r"\\1", teen)
+                  }
+                  teen=teen_map.get(tag,"Tranqui, solo para estar al día.")
+              teen=cw(teen,18)
+              if len(re.findall(r"[\\U0001F300-\\U0001FAFF\\u2600-\\u27BF]",teen))>1:
+                  teen=re.sub(r"([\\U0001F300-\\U0001FAFF\\u2600-\\u27BF]).*$", r"\\1", teen)
 
-              conf = 0.7 if tag!="otros" else 0.5
-              if conf < 0.5:
-                  adult, teen, sev, action = "Sin efecto directo en tu día a día.", "Sin efecto directo.", 0, "FYI"
+              conf=0.7 if tag!="otros" else 0.5
+              if conf<0.5:
+                  adult,teen,sev,act="Sin efecto directo en tu día a día.","Sin efecto directo.",0,"FYI"
 
-              def dedupe(src, ttl):
-                  ttl5 = " ".join(ttl.split()[:6]).lower()
+              def dedupe(src,ttl):
+                  ttl5=" ".join(ttl.split()[:6]).lower()
                   return src if ttl5 not in src.lower() else "Resumen breve relevante para ti."
-              adult = dedupe(adult, it["title"]); teen = dedupe(teen, it["title"])
+              adult=dedupe(adult,it["title"]); teen=dedupe(teen,it["title"])
 
-              if tag not in TAGS: tag = "otros"
-              rationale = f"Reglas por keywords; sensible={'sí' if sensitive else 'no'}; fuente={it['source']}"
+              if tag not in TAGS: tag="otros"
+              return {"adult_impact":adult,"teen_impact":teen,"tag":tag,"severity":sev,"horizon":hz,"action":act,"rationale":f"Reglas por keywords; sensible={'sí' if sensitive else 'no'}; fuente={it['source']}", "confidence":conf}
 
-              return {
-                 "adult_impact": adult,
-                 "teen_impact": teen,
-                 "tag": tag,
-                 "severity": sev,
-                 "horizon": horizon,
-                 "action": action,
-                 "rationale": rationale,
-                 "confidence": conf,
-              }
+          # Geo scoring
+          CITIES_CAT={"barcelona","bcn","girona","gerona","lleida","lerida","tarragona","sabadell","terrassa","badalona","hospitalet","l'hospitalet","mataró","mataro","reus","manresa","figueres","granollers","molins de rei","sitges","sants","eixample","gràcia","gracia"}
+          CAT_TOKENS={"cataluña","catalunya","catalana","aliança catalana","orriols"}
+          CITIES_RIOJA={"logroño","logrono","haro","calahorra","arnedo","najera","nàjera","albelda de iregua","albelda","la rioja","rioja"}
+          FOREIGN={"estados unidos","eeuu","ee.uu.","francia","alemania","reino unido","uk","china","rusia","ucrania","italia","portugal","méxico","mexico","brasil","japón","japon"}
+          WL_CAT={"elperiodico.com","lavanguardia.com","ccma.cat","ara.cat","naciodigital.cat","diaridebarcelona.cat","beteve.cat"}
+          WL_RIOJA={"larioja.com","rioja2.com","nuevecuatrouno.com","larioja.org"}
+          WL_ES={"elpais.com","rtve.es","elmundo.es","abc.es","eldiario.es","elespanol.com"}
 
-          CITIES_CAT = {"barcelona","bcn","girona","gerona","lleida","lerida","tarragona","sabadell","terrassa","badalona","hospitalet","l'hospitalet","mataró","mataro","reus","manresa","figueres","granollers","molins de rei","sitges","sants","eixample","gràcia","gracia"}
-          CITIES_RIOJA = {"logroño","logrono","haro","calahorra","arnedo","najera","nàjera","albelda de iregua","albelda","la rioja","rioja"}
-          FOREIGN_HINTS = {"estados unidos","eeuu","ee.uu.","francia","alemania","reino unido","uk","china","rusia","ucrania","italia","portugal","méxico","mexico","brasil","japón","japon"}
-          WL_CAT = {"elperiodico.com","lavanguardia.com","ccma.cat","ara.cat","naciodigital.cat","diaridebarcelona.cat","beteve.cat"}
-          WL_RIOJA = {"larioja.com","rioja2.com","nuevecuatrouno.com","larioja.org"}
-          WL_ES  = {"elpais.com","rtve.es","elmundo.es","abc.es","eldiario.es","elespanol.com"}
-
-          def score_region(text, host, region):
+          def score_region(text,host,region):
               t=text.lower(); s=0
               if region=="cataluna":
                   if any(w in t for w in CITIES_CAT): s+=3
+                  if any(w in t for w in CAT_TOKENS): s+=3
                   if host in WL_CAT: s+=2
               elif region=="rioja":
                   if any(w in t for w in CITIES_RIOJA): s+=3
                   if host in WL_RIOJA: s+=2
               elif region=="espana":
-                  if "españa" in t or "espana" in t: s+=2
+                  base=2 if ("españa" in t or "espana" in t) else 0
+                  if any(w in t for w in CAT_TOKENS): base=min(base,1)
+                  s+=base
                   if host in WL_ES: s+=2
-              if s<2 and any(w in t for w in FOREIGN_HINTS): s-=2
+              if s<2 and any(w in t for w in FOREIGN): s-=2
               return s
 
           def best_region(item):
@@ -222,62 +217,60 @@ jobs:
                       "rioja":score_region(text,host,"rioja"),
                       "espana":score_region(text,host,"espana"),
                       "global":0}
-              region, sc = max(scores.items(), key=lambda kv: kv[1])
+              region,sc=max(scores.items(), key=lambda kv: kv[1])
               return region if sc>=2 else "global"
 
-          union_all=[]; raw_by_cat={}
-          for cat, urls in FEEDS.items():
-              all_items=[]
+          union=[]; bycat={}
+          for cat,urls in FEEDS.items():
+              all_it=[]
               for u in urls:
                   try:
-                      xml=fetch(u); host=urllib.parse.urlparse(u).hostname
-                      items=parse(xml,host)
-                      all_items.extend(items); union_all.extend(items)
-                      print(f"OK {cat} <- {u} : +{len(items)}")
+                      text=robust_text(u); host=urllib.parse.urlparse(u).hostname
+                      all_it.extend(parse(text,host))
                   except Exception as e:
-                      print("Feed error:", u, repr(e))
-              raw_by_cat[cat]=all_items
+                      print("Feed error:", u, e)
+              bycat[cat]=all_it; union.extend(all_it)
 
           buckets={"cataluna":[], "espana":[], "rioja":[], "global":[]}
-          def norm_title(t):
-              t=(t or "").lower(); t=re.sub(r"[^\\w\\sáéíóúñüç]"," ",t); t=re.sub(r"\\s+"," ",t).strip(); return t[:120]
+          def norm(t):
+              t=(t or "").lower(); t=re.sub(r"[^\w\sáéíóúñüç]"," ",t); t=re.sub(r"\s+"," ",t).strip(); return t[:120]
           seen=set()
-          for it in union_all:
-              key=(norm_title(it["title"]), it["url"])
+          for it in union:
+              key=(norm(it["title"]), it["url"])
               if key in seen: continue
               seen.add(key)
               buckets[best_region(it)].append(it)
 
-          def intersect_top(lst):
+          def intersect(lst):
               bag={}
               for it in lst:
-                  k=norm_title(it["title"])
-                  if k not in bag: bag[k]={"it":it,"cnt":0,"latest":it["published_at"]}
+                  k=norm(it["title"])
+                  if k not in bag: bag[k]={"it":it,"cnt":0}
                   bag[k]["cnt"]+=1
-                  if it["published_at"]>bag[k]["latest"]: bag[k]["latest"]=it["published_at"]
-              return [v["it"] for v in sorted(bag.values(), key=lambda x:(x["cnt"],x["latest"]), reverse=True)]
+              return [v["it"] for v in sorted(bag.values(), key=lambda x:x["cnt"], reverse=True)]
 
-          ranked={cat:intersect_top(lst) for cat,lst in buckets.items()}
+          ranked={cat:intersect(lst) for cat,lst in buckets.items()}
           def backfill(cat):
               need=MAX-len(ranked[cat])
-              if need<=0: return
-              more=sorted(buckets[cat], key=lambda x:x["published_at"], reverse=True)
-              used={id(x) for x in ranked[cat]}
+              if need<=0:return
+              more=buckets[cat]
               for it in more:
-                  if id(it) in used: continue
+                  if it in ranked[cat]: continue
                   ranked[cat].append(it)
                   if len(ranked[cat])>=MAX: break
           for cat in ["cataluna","rioja","espana","global"]:
               backfill(cat)
 
-          def map_item(cat, it):
+          def map_item(cat,it):
               meta=impact(it)
+              t=(it["title"]+" "+it["summary"]).lower()
+              if re.search(r"narcotr[aá]fico|detenido|operaci[oó]n policial", t): meta["tag"]="seguridad"
+              if re.search(r"receta|gastronom[ií]a|plato|postre|origen .*catalana", t): meta["tag"]="cultura"
               return {
                 "title": it["title"], "summary": it["summary"], "url": it["url"],
-                "source": it["source"], "published_at": it["published_at"], "img": it.get("img",""),
+                "source": it["source"], "published_at": it["published_at"], "img":"",
                 "location": "global" if cat=="global" else ("ES" if cat=="espana" else ("Cataluña" if cat=="cataluna" else "La Rioja")),
-                "category": meta["tag"],
-                **meta
+                "category": meta["tag"], **meta
               }
 
           out={
@@ -289,9 +282,21 @@ jobs:
             "global":[map_item("global",it) for it in ranked["global"][:MAX]],
           }
 
-          with open("data/latest.json","w",encoding="utf-8") as f:
-            json.dump(out,f,ensure_ascii=False,indent=2)
+          for cat in out:
+              if isinstance(out[cat], list):
+                  for it in out[cat]:
+                      for k in ['title','summary','adult_impact','teen_impact','source']:
+                          if k in it: it[k] = clean_txt(it[k])
+
+          with open('data/latest.json','w',encoding='utf-8') as f:
+              json.dump(out,f,ensure_ascii=False,indent=2)
+          print("Wrote data/latest.json")
           PY
+
+      - name: Copy to site/data for static serving
+        run: |
+          cp -f data/latest.json site/data/latest.json
+          echo "Copied data/latest.json -> site/data/latest.json"
 
       - name: Upload latest.json artifact
         uses: actions/upload-artifact@v4
@@ -299,13 +304,10 @@ jobs:
           name: latest-json
           path: data/latest.json
 
-      - name: Force commit (always push)
+      - name: Commit both JSONs
         run: |
-          set -euo pipefail
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          jq '.updated_at = (now | todateiso8601)' data/latest.json > data/latest.tmp && mv data/latest.tmp data/latest.json
-          git add data/latest.json
-          git commit -m "chore: update latest.json $(date -u +%FT%TZ)" || echo "No changes to commit"
+          git add data/latest.json site/data/latest.json
+          git commit -m "chore: update latest.json $(date -u +%FT%TZ)" || echo "No changes"
           git push || true
