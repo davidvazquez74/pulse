@@ -1,5 +1,5 @@
 {
-  "updated_at": "2025-09-21T23:10:06.613777+00:00",
+  "updated_at": "2025-09-22T00:58:59.204109+00:00",
   "version": "live",
   "cataluna": [
     {
@@ -45,6 +45,16 @@
       "category": "otros"
     },
     {
+      "title": "Trump despide al “mártir” Charlie Kirk en un memorial entre la religión y la política: “Tenemos que devolver a Dios a Estados Unidos”",
+      "summary": "El líder juvenil MAGA es honrado en un estadio que se quedó corto para la multitud que asistió al memorial. “He perdonado a ese joven”, dice a viuda del activista sobre el presunto asesino",
+      "url": "https://elpais.com/internacional/2025-09-21/decenas-de-miles-de-personas-hacen-cola-durante-horas-para-el-funeral-de-estado-de-charlie-kirk.html",
+      "source": "feeds.elpais.com",
+      "published_at": "2025-09-22T00:01:16+00:00",
+      "img": "",
+      "location": "ES",
+      "category": "otros"
+    },
+    {
       "title": "Las fuertes lluvias dejan al menos un muerto en Cataluña",
       "summary": "Los Bomberos localizan muerto un menor arrastrado por una riera y buscan durante la noche a su padre",
       "url": "https://elpais.com/espana/catalunya/2025-09-21/desprendimientos-de-tierras-y-caidas-de-arboles-por-las-lluvias-complican-la-circulacion-en-varios-puntos-de-cataluna.html",
@@ -53,19 +63,19 @@
       "img": "",
       "location": "ES",
       "category": "otros"
-    },
-    {
-      "title": "El Gobierno traslada a las CCAA que sólo les permitirá un déficit del 0,1% y Junts aleja los Presupuestos: \"Es un insulto\"",
-      "summary": "Montero les revela en privado el desglose de la senda de estabilidad, paso indispensable para sacar los Presupuestos de 2026. El partido de Puigdemont lo ve \"un insulto\" y sólo votará a favor si llega al 0,3%&nbsp;Leer",
-      "url": "https://www.elmundo.es/espana/2025/09/21/68d01502fc6c83381b8b457d.html",
-      "source": "e00-elmundo.uecdn.es",
-      "published_at": "2025-09-21T22:52:46+00:00",
-      "img": "",
-      "location": "ES",
-      "category": "otros"
     }
   ],
   "rioja": [
+    {
+      "title": "Un 'funeral de Estado' con 100.000 asistentes para despedir a Charlie Kirk",
+      "summary": "Los asistentes, con Trump a la cabeza, rinden tributo en el estadio de Glendale bajo estrictas medidas de seguridad al líder derechista asesinado",
+      "url": "https://www.larioja.com/internacional/eeuu/miles-personas-cola-horas-asistir-funeral-charlie-20250921195912-ntrc.html",
+      "source": "www.larioja.com",
+      "published_at": "2025-09-22T01:34:22+00:00",
+      "img": "",
+      "location": "La Rioja",
+      "category": "otros"
+    },
     {
       "title": "Mikel Izal abandona sus 'miedos' y accede al 'paraíso' en San Mateo",
       "summary": "Pese a la lluvia, el concierto central de las fiestas se celebra a ritmo de pop rock en la plaza del Ayuntamiento con buenas sensaciones desde el telonero Dollar Selmouni",
@@ -82,16 +92,6 @@
       "url": "https://www.larioja.com/deportes/futbol/segunda-rfef/san-mateo-impide-triunfo-logrones-ante-ebro-20250921131130-nt.html",
       "source": "www.larioja.com",
       "published_at": "2025-09-21T23:58:48+00:00",
-      "img": "",
-      "location": "La Rioja",
-      "category": "otros"
-    },
-    {
-      "title": "El hambre de Aarón Palacio",
-      "summary": "El diestro aragonés, recién doctorado, descerrojó la primera puerta grande de la feria con las tres orejas que cortó",
-      "url": "https://www.larioja.com/logrono/san-mateo/hambre-aaron-palacio-20250922232333-nt.html",
-      "source": "www.larioja.com",
-      "published_at": "2025-09-21T23:29:26+00:00",
       "img": "",
       "location": "La Rioja",
       "category": "otros"
