@@ -1,1 +1,132 @@
-{"updated_at": "1970-01-01T00:00:00Z", "version": "seed", "cataluna": [], "espana": [], "rioja": [], "global": []}
+{
+  "updated_at": "2025-09-22T13:30:00Z",
+  "version": "demo",
+  "cataluna": [
+    {
+      "title": "El Parlament aprueba nueva medida educativa",
+      "summary": "La norma introduce cambios en evaluación y recursos digitales.",
+      "url": "https://example.com/cataluna-edu",
+      "source": "example.com",
+      "published_at": "2025-09-22T10:30:00Z",
+      "img": "",
+      "location": "Cataluña",
+      "category": "educacion"
+    },
+    {
+      "title": "Barcelona amplía carriles bici en el Eixample",
+      "summary": "Obras por fases con alternancias de tráfico.",
+      "url": "https://example.com/cataluna-bici",
+      "source": "example.com",
+      "published_at": "2025-09-22T09:10:00Z",
+      "img": "",
+      "location": "Cataluña",
+      "category": "movilidad"
+    },
+    {
+      "title": "Industria tecnológica celebra foro en el 22@",
+      "summary": "Startups y fondos se reúnen para abordar IA responsable.",
+      "url": "https://example.com/cataluna-foro",
+      "source": "example.com",
+      "published_at": "2025-09-22T08:15:00Z",
+      "img": "",
+      "location": "Cataluña",
+      "category": "tecnología"
+    }
+  ],
+  "espana": [
+    {
+      "title": "El BCE mantiene tipos; reacción en hipotecas",
+      "summary": "Analistas esperan estabilización del Euríbor a corto plazo.",
+      "url": "https://example.com/espana-bce",
+      "source": "example.com",
+      "published_at": "2025-09-22T10:00:00Z",
+      "img": "",
+      "location": "ES",
+      "category": "finanzas"
+    },
+    {
+      "title": "Rebaja temporal en carburantes por competencia",
+      "summary": "Varias cadenas anuncian descuentos en gasolina y diésel.",
+      "url": "https://example.com/espana-carburantes",
+      "source": "example.com",
+      "published_at": "2025-09-22T09:20:00Z",
+      "img": "",
+      "location": "ES",
+      "category": "energía"
+    },
+    {
+      "title": "AENA prevé récord de pasajeros este mes",
+      "summary": "Refuerzos en seguridad y mostradores en aeropuertos clave.",
+      "url": "https://example.com/espana-aena",
+      "source": "example.com",
+      "published_at": "2025-09-22T07:50:00Z",
+      "img": "",
+      "location": "ES",
+      "category": "negocios"
+    }
+  ],
+  "rioja": [
+    {
+      "title": "La vendimia avanza con buena calidad",
+      "summary": "Cooperativas prevén grados óptimos y producción contenida.",
+      "url": "https://example.com/rioja-vendimia",
+      "source": "example.com",
+      "published_at": "2025-09-22T09:40:00Z",
+      "img": "",
+      "location": "La Rioja",
+      "category": "negocios"
+    },
+    {
+      "title": "Logroño inaugura parque urbano",
+      "summary": "Nueva zona verde con juegos inclusivos y sombra natural.",
+      "url": "https://example.com/rioja-parque",
+      "source": "example.com",
+      "published_at": "2025-09-22T08:05:00Z",
+      "img": "",
+      "location": "La Rioja",
+      "category": "otros"
+    },
+    {
+      "title": "Refuerzo de buses interurbanos el fin de semana",
+      "summary": "Se aumentan frecuencias en líneas con mayor demanda.",
+      "url": "https://example.com/rioja-bus",
+      "source": "example.com",
+      "published_at": "2025-09-22T07:30:00Z",
+      "img": "",
+      "location": "La Rioja",
+      "category": "movilidad"
+    }
+  ],
+  "global": [
+    {
+      "title": "Reunión del G7: agenda climática y seguridad",
+      "summary": "Los líderes abordan transición energética y resiliencia.",
+      "url": "https://example.com/global-g7",
+      "source": "example.com",
+      "published_at": "2025-09-22T11:15:00Z",
+      "img": "",
+      "location": "global",
+      "category": "internacional"
+    },
+    {
+      "title": "Gigante tecnológico anuncia nueva IA multimodal",
+      "summary": "Capacidades avanzadas para texto, imagen y audio.",
+      "url": "https://example.com/global-ia",
+      "source": "example.com",
+      "published_at": "2025-09-22T10:25:00Z",
+      "img": "",
+      "location": "global",
+      "category": "tecnología"
+    },
+    {
+      "title": "FMI revisa previsiones de crecimiento",
+      "summary": "Ligera mejora para economías avanzadas; cautela en emergentes.",
+      "url": "https://example.com/global-fmi",
+      "source": "example.com",
+      "published_at": "2025-09-22T08:45:00Z",
+      "img": "",
+      "location": "global",
+      "category": "economia"
+    }
+  ]
+}
