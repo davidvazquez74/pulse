@@ -1,19 +1,20 @@
-name: Update News (hourly)
+name: Update News (hourly + commit + artifact)
 
 on:
-  workflow_dispatch:   # botón manual
+  workflow_dispatch:     # botón manual
   schedule:
-    - cron: "0 * * * *"
+    - cron: "0 * * * *"  # cada hora
 
 permissions:
-  contents: write
+  contents: write        # necesario para hacer push
 
 jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+
     steps:
-      - name: Checkout repo
+      - name: Checkout repo (full)
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -27,12 +28,11 @@ jobs:
         run: |
           mkdir -p site/data
           if [ ! -f site/data/latest.json ]; then
-            echo 'Seeding site/data/latest.json'
             printf '%s\n' '{"updated_at":"1970-01-01T00:00:00Z","version":"seed","cataluna":[],"espana":[],"rioja":[],"global":[]}' > site/data/latest.json
           fi
           ls -la site/data
 
-      - name: Build latest.json (Python, robust + backfill)
+      - name: Build latest.json (Python stdlib + backfill)
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -66,7 +66,6 @@ jobs:
               return re.sub(r"<[^>]+>", "", s or "").strip()
 
           def safe_iso(s):
-              # intenta ISO; si falla, ahora en UTC
               try:
                   return datetime.fromisoformat((s or "").replace("Z","+00:00")).astimezone(timezone.utc).isoformat()
               except Exception:
@@ -104,8 +103,8 @@ jobs:
 
           def norm(t):
               t = (t or "").lower()
-              t = re.sub(r"[^\w\sáéíóúñüç]", " ", t)
-              t = re.sub(r"\s+", " ", t).strip()
+              t = re.sub(r"[^\w\\sáéíóúñüç]", " ", t)
+              t = re.sub(r"\\s+", " ", t).strip()
               return t[:80]
 
           def intersect_top(lst):
@@ -158,7 +157,6 @@ jobs:
                       if k not in used:
                           used.add(k); final.append(it)
                       if len(final) >= MAX: break
-              # backfill: si vacío, tira de union_all (más recientes)
               if not final and union_all:
                   union_all.sort(key=lambda x: x["published_at"], reverse=True)
                   for it in union_all:
@@ -175,13 +173,6 @@ jobs:
           print("Wrote site/data/latest.json")
           PY
 
-      - name: Show first bytes (debug)
-        run: |
-          echo "----- HEAD site/data/latest.json -----"
-          head -c 800 site/data/latest.json || true
-          echo ""
-          echo "--------------------------------------"
-
       - name: Upload latest.json artifact
         uses: actions/upload-artifact@v4
         with:
@@ -191,6 +182,7 @@ jobs:
       - name: Commit changes (if any)
         run: |
           set -euo pipefail
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           if [[ -n "$(git status --porcelain site/data/latest.json)" ]]; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
