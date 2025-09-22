@@ -29,8 +29,8 @@ function initTeens(){
 function initTheme(){
   const r = document.documentElement;
   const btn = document.getElementById('chip-mode'); if(!btn) return;
-  const apply = (t)=>{ if(t) r.setAttribute('data-theme',t); else r.removeAttribute('data-theme'); btn.querySelector('.mode-ico').textContent = (get()=='dark'?'🌙':'☀️'); btn.setAttribute('aria-pressed', String(get()=='dark')); }
   const get = ()=> r.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
+  const apply = (t)=>{ if(t) r.setAttribute('data-theme',t); else r.removeAttribute('data-theme'); btn.querySelector('.mode-ico').textContent = (get()=='dark'?'🌙':'☀️'); btn.setAttribute('aria-pressed', String(get()=='dark')); }
   const saved = localStorage.getItem('pulse_theme'); apply(saved);
   btn.addEventListener('click', ()=>{ const next = (get()=='dark')?'light':'dark'; localStorage.setItem('pulse_theme', next); apply(next); });
 }

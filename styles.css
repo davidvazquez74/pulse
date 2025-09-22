@@ -11,40 +11,49 @@
 :root[data-theme="dark"]{ --bg:#0e1115; --text:#f2f3f4; --muted:#9aa3af; --card:#161a20; --hair:#222831; --chip:#1f242c; --chipTx:#e9edf2; color-scheme: dark; }
 
 *{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--text);font:400 16px/1.5 Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif}
+html,body{margin:0;background:var(--bg);color:var(--text);font:400 15px/1.5 Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif}
 
-.bar{position:sticky;top:0;z-index:10;background:var(--bg);display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--hair);}
+/* Header */
+.bar{position:sticky;top:0;z-index:10;background:var(--bg);display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--hair);}
 .bar h1{margin:0;font-size:22px;letter-spacing:.2px}
-.actions{display:flex;gap:8px}
+.actions{display:flex;gap:6px}
 
-.chip{appearance:none;border:0;border-radius:999px;background:var(--chip);color:var(--chipTx);padding:6px 12px;font:600 14px/1 Inter, system-ui;cursor:pointer;transition:background .15s, color .15s}
+/* Chips (más finos y sin salto de línea) */
+.chip{appearance:none;border:0;border-radius:999px;background:var(--chip);color:var(--chipTx);
+      padding:5px 10px;font:600 13px/1 Inter, system-ui;cursor:pointer;transition:background .15s, color .15s;white-space:nowrap}
 .chip[aria-pressed="true"]{background:var(--chipA); color:var(--chipATx)}
 .chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mode-ico{margin-right:4px}
 
-.wx{margin:10px 12px;padding:10px;border-radius:14px;background:var(--card);border:1px solid var(--hair)}
+/* Weather compacto (como v1) */
+.wx{margin:10px 12px;padding:8px;border-radius:14px;background:var(--card);border:1px solid var(--hair)}
 .wx-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
 .wx-title{font-size:14px}
-.wx-change{opacity:.5;pointer-events:none;border:0;background:transparent;color:var(--accent)}
-.wx-days{display:flex;gap:8px;overflow:auto;padding:6px 0}
-.wx-day{min-width:64px;border-radius:12px;background:rgba(0,0,0,.03);padding:6px 8px;text-align:center}
+.wx-change{opacity:.6;border:0;background:transparent;color:var(--accent)}
+.wx-days{display:flex;gap:8px;overflow:auto;padding:4px 0}
+.wx-day{min-width:52px;border-radius:12px;background:rgba(0,0,0,.03);padding:6px 6px;text-align:center}
 .wx-day .d{font-size:12px;color:var(--muted)}
-.wx-day .i{font-size:18px;margin:2px 0}
-.wx-day .t{font-size:13px;font-weight:600}
+.wx-day .i{font-size:16px;margin:2px 0}
+.wx-day .t{font-size:12px;font-weight:600}
 .wx-foot{font-size:12px;color:var(--muted);text-align:right}
 
+/* Categorías */
 .cats{padding:8px 12px;border-bottom:1px solid var(--hair)}
 .chips{display:flex;gap:8px;overflow:auto}
-.wrap{padding:8px 12px 24px}
 
-.section-title{margin:10px 4px 6px;font-size:18px;font-weight:700}
+/* Lista */
+.wrap{padding:10px 12px 24px}
+.section-title{margin:8px 4px 6px;font-size:18px;font-weight:700}
 .grid{display:grid;gap:10px}
 @media(min-width:740px){.grid{grid-template-columns:repeat(2,1fr)}}
 @media(min-width:1040px){.grid{grid-template-columns:repeat(3,1fr)}}
 
+/* Card compacta */
 .card{background:var(--card);border:1px solid var(--hair);border-radius:14px;padding:12px}
 .card .t{margin:0 0 4px;font-size:16px;line-height:1.3;font-weight:800;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .card .s{margin:0 0 8px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .card .m{font-size:12px;color:var(--muted)}
 .card .lnk{display:inline-block;margin-top:6px;color:var(--accent);text-decoration:none;font-weight:600}
 
+/* Estado vacío */
 .empty{color:var(--muted);font-size:14px}

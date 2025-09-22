@@ -1,7 +1,6 @@
 
 window.initPulseWeather = async function(){
   const box = document.getElementById('weather-days'); if(!box) return;
-  // skeleton 6 días compacto
   box.innerHTML = Array.from({length:6}).map(()=>`<div class="wx-day"><div class="d">—</div><div class="i">⛅</div><div class="t">··</div></div>`).join('');
   try{
     const lat=41.416, lon=2.015; // Molins
