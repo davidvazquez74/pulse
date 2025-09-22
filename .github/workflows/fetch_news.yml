@@ -1,18 +1,17 @@
-name: Update News (hourly + commit + artifact)
+name: Update News (hourly + force-commit)
 
 on:
-  workflow_dispatch:     # botón manual
+  workflow_dispatch:
   schedule:
-    - cron: "0 * * * *"  # cada hora
+    - cron: "0 * * * *"
 
 permissions:
-  contents: write        # necesario para hacer push
+  contents: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
     steps:
       - name: Checkout repo (full)
         uses: actions/checkout@v4
@@ -26,11 +25,11 @@ jobs:
 
       - name: Ensure folders + seed
         run: |
-          mkdir -p site/data
-          if [ ! -f site/data/latest.json ]; then
-            printf '%s\n' '{"updated_at":"1970-01-01T00:00:00Z","version":"seed","cataluna":[],"espana":[],"rioja":[],"global":[]}' > site/data/latest.json
+          mkdir -p data
+          if [ ! -f data/latest.json ]; then
+            printf '%s\n' '{"updated_at":"1970-01-01T00:00:00Z","version":"seed","cataluna":[],"espana":[],"rioja":[],"global":[]}' > data/latest.json
           fi
-          ls -la site/data
+          ls -la data
 
       - name: Build latest.json (Python stdlib + backfill)
         run: |
@@ -41,7 +40,6 @@ jobs:
 
           FEEDS = {
             "cataluna": [
-              "https://www.lavanguardia.com/mvc/feed/rss/catalunya",
               "https://www.elperiodico.com/es/rss/catalunya/rss.xml",
             ],
             "espana": [
@@ -63,7 +61,9 @@ jobs:
                   return r.read()
 
           def strip_html(s):
-              return re.sub(r"<[^>]+>", "", s or "").strip()
+              import html
+              s = html.unescape(s or "")
+              return re.sub(r"<[^>]+>", "", s).strip()
 
           def safe_iso(s):
               try:
@@ -77,7 +77,6 @@ jobs:
                   root = ET.fromstring(xml_bytes)
               except ET.ParseError:
                   return items
-              # RSS
               for it in root.findall(".//item"):
                   items.append({
                       "title": (it.findtext("title") or "").strip() or "(sin título)",
@@ -87,7 +86,6 @@ jobs:
                       "img": "",
                       "source": host,
                   })
-              # Atom
               for it in root.findall(".//{*}entry"):
                   link_el = it.find("{*}link")
                   link = link_el.get("href","") if link_el is not None else ""
@@ -103,8 +101,8 @@ jobs:
 
           def norm(t):
               t = (t or "").lower()
-              t = re.sub(r"[^\w\\sáéíóúñüç]", " ", t)
-              t = re.sub(r"\\s+", " ", t).strip()
+              t = re.sub(r"[^\w\sáéíóúñüç]", " ", t)
+              t = re.sub(r"\s+", " ", t).strip()
               return t[:80]
 
           def intersect_top(lst):
@@ -168,28 +166,33 @@ jobs:
 
           print("Sizes:", {k: len(v) for k,v in out.items() if isinstance(v, list)})
 
-          with open("site/data/latest.json","w",encoding="utf-8") as f:
+          with open("data/latest.json","w",encoding="utf-8") as f:
               json.dump(out, f, ensure_ascii=False, indent=2)
-          print("Wrote site/data/latest.json")
+          print("Wrote data/latest.json")
           PY
+
+      - name: Show head (debug)
+        run: |
+          echo "----- HEAD data/latest.json -----"
+          head -c 800 data/latest.json || true
+          echo ""
+          echo "--------------------------------"
 
       - name: Upload latest.json artifact
         uses: actions/upload-artifact@v4
         with:
           name: latest-json
-          path: site/data/latest.json
+          path: data/latest.json
 
-      - name: Commit changes (if any)
+      - name: Force commit (always push)
         run: |
           set -euo pipefail
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          if [[ -n "$(git status --porcelain site/data/latest.json)" ]]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add site/data/latest.json
-            git commit -m "chore: update latest.json [skip ci]" || true
-            git push || true
-            echo "Committed new latest.json"
-          else
-            echo "No changes to commit (content identical)"
-          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          jq '.updated_at = (now | todateiso8601)' data/latest.json > data/latest.tmp && mv data/latest.tmp data/latest.json
+          git add data/latest.json
+          git status
+          git commit -m "chore: update latest.json $(date -u +%FT%TZ)" || echo "No changes to commit"
+          git push || true
+          echo "Pushed data/latest.json"
