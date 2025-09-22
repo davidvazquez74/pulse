@@ -3,7 +3,7 @@ name: Update News (hourly + impact + advanced geofilter)
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 * * * *"
+    - cron: "0 * * * *"   # cada hora
 
 permissions:
   contents: write
@@ -12,6 +12,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+
     steps:
       - name: Checkout repo (full)
         uses: actions/checkout@v4
@@ -42,6 +43,7 @@ jobs:
           from datetime import datetime, timezone
           from charset_normalizer import from_bytes as detect_charset
 
+          # ---------------- Feeds ----------------
           FEEDS = {
             "cataluna": [
               "https://www.elperiodico.com/es/rss/catalunya/rss.xml",
@@ -52,13 +54,17 @@ jobs:
               "https://www.rtve.es/rss/",
               "https://e00-elmundo.uecdn.es/elmundo/rss/espana.xml",
             ],
-            "rioja": ["https://www.larioja.com/rss/2.0/portada"],
+            "rioja": [
+              "https://www.larioja.com/rss/2.0/portada"
+            ],
             "global": [
               "https://feeds.bbci.co.uk/news/world/rss.xml",
               "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
             ],
           }
-          MAX = 3
+
+          # Mostrar hasta N noticias por sección (acuerdo: 6)
+          MAX = 6
 
           # ---------------- utils ----------------
           CTRL_RX = re.compile(r'[\x00-\x08\x0b\x0c\x0e-\x1f]')
@@ -121,44 +127,64 @@ jobs:
                   link_el = it.find('{*}link'); link = link_el.get('href','') if link_el is not None else ''
                   desc  = strip_html(it.findtext('{*}summary') or it.findtext('{*}content') or '')
                   pub   = datetime.now(tz=timezone.utc).isoformat()
-                  items.append({"title": title, "url": link.strip(), "summary": desc,
+                  items.append({"title": title, "url": (link or '').strip(), "summary": desc,
                                 "published_at": pub, "img": "", "source": host})
               return items
 
           # ---------------- impact engine ----------------
+          # + añadimos clima extremo (huracán/tifón/DANA/inundación)
           KW = {
             r"(eur[ií]bor|bce|hipoteca|inflaci[oó]n)": ("finanzas",2,"este mes","vigilar"),
             r"(gasolina|di[eé]sel|petr[oó]leo|electricidad|gas)": ("energía",2,"esta semana","vigilar"),
             r"(huelga|paro).*(tren|metro|bus|vuelo)": ("movilidad",2,"hoy","planificar"),
             r"(alquiler|vivienda|inmobiliaria)": ("vivienda",2,"este mes","vigilar"),
             r"(impuestos|iva|subsidio|bono)": ("impuestos",2,"este mes","vigilar"),
-            r"(meteocat|temperaturas?|ola de calor|vuelve el calor|maximas|minimas)": ("clima",2,"hoy","planificar"),
-            r"(boletaire|setas?|micologia|bosque|medio natural)": ("medioambiente",2,"esta semana","vigilar"),
-            r"(cadaver|muertos?|asesinato|violencia|derrumbre|colapso)": ("seguridad",1,"hoy","vigilar"),
-            r"(concierto|festival|partido|maraton|celebracion)": ("eventos",2,"esta semana","planificar"),
-            r"(champions|liga|mundial|copa|barca|real madrid|baloncesto|seleccionador)": ("deporte",2,"hoy","planificar"),
+            r"(meteocat|temperaturas?|ola de calor|maximas|minimas|fr[ií]o|tormenta|hurac[aá]n|tif[oó]n|dana|inundaci[oó]n)": ("clima",2,"hoy","planificar"),
+            r"(boletaire|setas?|micolog[ií]a|bosque|medio natural)": ("medioambiente",2,"esta semana","vigilar"),
+            r"(cad[aá]ver|muert[oa]s?|asesinato|violencia|derrumb|colaps)": ("seguridad",1,"hoy","vigilar"),
+            r"(concierto|festival|partido|marat[oó]n|celebraci[oó]n)": ("eventos",2,"esta semana","planificar"),
+            r"(champions|liga|mundial|copa|bar[cs]a|real madrid|baloncesto|seleccionador)": ("deporte",2,"hoy","planificar"),
             r"(covid|vacuna|brote|epidemia|hospital)": ("salud",2,"esta semana","vigilar"),
             r"\bia\b|ciberseguridad|hackeo": ("tecnología",1,"esta semana","FYI"),
-            r"empresa|fusion|resultados|cotizacion": ("negocios",1,"este mes","FYI"),
-            r"juicio|sentencia|tribunal|fiscal": ("justicia",1,"esta semana","FYI"),
-            r"incendio|contaminacion|vertido|desastre ambiental": ("medioambiente",2,"hoy","vigilar"),
-            r"(palestina|onu|oriente proximo|macron|israel|gaza|cisjordania|hamas|reconocimiento del estado)": ("internacional",2,"esta semana","FYI"),
+            r"empresa|fusi[oó]n|resultados|cotizaci[oó]n": ("negocios",1,"este mes","FYI"),
+            r"(juicio|sentencia|tribunal|fiscal|audiencia nacional|ts|tc)": ("justicia",1,"esta semana","FYI"),
+            r"(incendio|contaminaci[oó]n|vertido|desastre ambiental)": ("medioambiente",2,"hoy","vigilar"),
+            r"(palestina|onu|oriente pr[oó]ximo|macron|israel|gaza|cisjordania|ham[aá]s|reconocimiento del estado|otan|ue|bruselas)": ("internacional",2,"esta semana","FYI"),
           }
-          SENSITIVE = re.compile(r"(cadaver|muertos?|asesinato|violencia|epidemia|brote|covid|guerra|conflicto)", re.I)
+          SENSITIVE = re.compile(r"(ejecuci[oó]n p[uú]blica|reh[eé]n|tiroteo|atentado|cad[aá]ver|muert[oa]s?|guerra|conflicto)", re.I)
           TAGS = {"finanzas","economia","negocios","energía","movilidad","vivienda","empleo","impuestos","clima",
                   "salud","educacion","eventos","deporte","cultura","seguridad","justicia","internacional","tecnología",
                   "medioambiente","transporte","salud_publica","otros"}
 
-          def cw(s,maxw):
+          EMOJI_RX = re.compile(r"[\U0001F300-\U0001FAFF\u2600-\u27BF]")
+
+          def clip_words(s, maxw):
               w=re.split(r"\s+", (s or '').strip())
               return " ".join(w[:maxw])
 
+          def sanitize_impact(s, is_teen=False):
+              if not s: return ""
+              t = re.sub(r"\\\d+", "", s)  # quita \1, \2…
+              t = re.sub(r"\s+"," ",t).strip()
+              # emojis: teen máx 1, adulto 0
+              if is_teen:
+                  em = EMOJI_RX.findall(t)
+                  if len(em) > 1:
+                      # deja solo el primero
+                      first = em[0]
+                      t = EMOJI_RX.sub("", t)
+                      t = (t + " " + first).strip()
+              else:
+                  t = EMOJI_RX.sub("", t)
+              return t
+
           def impact(it):
-              t=norm_lower_noacc(f"{it['title']} {it['summary']}")
+              t_norm = norm_lower_noacc(f"{it['title']} {it['summary']}")
               tag,sev,hz,act=("otros",0,"sin plazo","FYI")
               for rx,conf in KW.items():
-                  if re.search(rx,t): tag,sev,hz,act=conf; break
-              sensitive = SENSITIVE.search(t) is not None
+                  if re.search(rx,t_norm):
+                      tag,sev,hz,act=conf; break
+              sensitive = SENSITIVE.search(t_norm) is not None
 
               adult_map={
                 "finanzas":"Revisa tu hipoteca y calcula cambios de cuota este mes.",
@@ -166,7 +192,7 @@ jobs:
                 "movilidad":"Planifica rutas y horarios alternativos hoy para evitar retrasos.",
                 "vivienda":"Valora renegociar alquiler o retrasar decisiones este mes.",
                 "impuestos":"Comprueba deducciones y plazos fiscales; evita recargos.",
-                "clima":"Adapta ropa y horarios: calor/tiempo inestable esta semana.",
+                "clima":"Adapta ropa y horarios: condiciones cambiantes esta semana.",
                 "seguridad":"Evita la zona y sigue indicaciones oficiales.",
                 "eventos":"Si asistes, prevé transporte y horarios con antelación.",
                 "deporte":"Prevé afluencias; usa transporte público.",
@@ -178,7 +204,7 @@ jobs:
                 "internacional":"Sigue fuentes fiables; sin efecto inmediato en tu rutina.",
                 "otros":"Sin efecto directo en tu día a día."
               }
-              adult=cw(adult_map.get(tag,"Sin efecto directo en tu día a día."),22)
+              adult = clip_words(adult_map.get(tag,"Sin efecto directo en tu día a día."), 22)
 
               if sensitive:
                   teen="Info importante. Sigue indicaciones; no difundas rumores."
@@ -189,14 +215,16 @@ jobs:
                     "deporte":"Habrá mucha gente; metro mejor. ⚽",
                     "energía":"Ojo a precios: controla gasto. 💡",
                     "finanzas":"Atento a tu cuota: puede cambiar. 💸",
-                    "clima":"Pilla ropa ligera y agua. ☀️",
+                    "clima":"Pilla agua y sombra si hace calor. ☀️",
                     "medioambiente":"Cuida el bosque; deja todo limpio. 🍃",
-                    "internacional":"Es noticia global; infórmate bien.",
+                    "internacional":"Es global; infórmate en medios fiables.",
                   }
-                  teen=teen_map.get(tag,"Tranqui, solo para estar al día.")
-              teen=cw(teen,18)
-              if len(re.findall(r"[\U0001F300-\U0001FAFF\u2600-\u27BF]",teen))>1:
-                  teen=re.sub(r"([\U0001F300-\U0001FAFF\u2600-\u27BF]).*$", r"\1", teen)
+                  teen = teen_map.get(tag,"Tranqui, solo para estar al día.")
+              teen = clip_words(teen, 18)
+
+              # sanitiza
+              adult = sanitize_impact(adult, is_teen=False)
+              teen  = sanitize_impact(teen,  is_teen=True)
 
               conf=0.7 if tag!="otros" else 0.5
               if conf<0.5:
@@ -210,7 +238,7 @@ jobs:
               if tag not in TAGS: tag="otros"
               return {"adult_impact":adult,"teen_impact":teen,"tag":tag,"severity":sev,"horizon":hz,"action":act,"rationale":f"Reglas por keywords; sensible={'sí' if sensitive else 'no'}; fuente={it['source']}", "confidence":conf}
 
-          # ---------------- semantic filter config (tu JSON) ----------------
+          # ---------------- semantic filter (con tus reglas) ----------------
           PRIORITY = ["rioja","cataluna","espana","global"]
 
           SOURCE_BOOST = {
@@ -240,9 +268,7 @@ jobs:
             "pp","psoe","vox","sumar","podemos","comunidades autonomas","ccaa","delegacion del gobierno","defensa",
             "interior","sanidad","educacion","transportes","transicion ecologica","economia"
           ]))
-          E_EXC = set(map(norm_lower_noacc, list(C_EXC) + [
-            "haro","najera","alfaro","ezcaray"
-          ]))
+          E_EXC = set(map(norm_lower_noacc, list(C_EXC) + ["haro","najera","alfaro","ezcaray"]))
 
           R_INC = set(map(norm_lower_noacc, [
             "la rioja","riojano","riojana","logroño","calahorra","arnedo","haro","najera","nájera","alfaro","ezcaray",
@@ -273,13 +299,12 @@ jobs:
               for pat in SOURCE_BOOST.get(region, []):
                   if pat in h or pat in u:
                       pts += 2
-              # paths específicos de elperiodico catalunya
+              # rutas claras de catalana en El Periódico
               if region=="cataluna" and ("elperiodico.com/es/catalunya" in u):
                   pts += 2
               return pts
 
           def is_rioja_wine_only(text:str)->bool:
-              # Aparece "rioja" en contexto de vino y NO aparecen topónimos/instituciones riojanas
               has_wine = token_in(text, R_EXC_WINE)
               has_topos = token_in(text, R_INC - R_EXC_WINE)
               has_rioja_word = ("rioja" in text)
@@ -293,7 +318,7 @@ jobs:
                   if token_in(t, C_EXC): s -= 2
               elif region=="rioja":
                   if token_in(t, R_INC): s += 3
-                  if is_rioja_wine_only(t): s -= 4  # override vino: no clasificar como rioja
+                  if is_rioja_wine_only(t): s -= 4  # override vino → no clasificar como rioja
               elif region=="espana":
                   if token_in(t, E_INC): s += 2
                   if token_in(t, E_EXC): s -= 1
@@ -305,14 +330,11 @@ jobs:
           def best_region(item):
               title, summary = item["title"], item["summary"]
               host = item["source"]; url = item.get("url","")
-
               scores = {reg: score_region(title, summary, host, url, reg)
                         for reg in ["rioja","cataluna","espana","global"]}
               max_score = max(scores.values())
-              # umbral estándar
               if max_score < 2:
                   return "global"
-              # empate -> prioridad
               winners = [r for r,v in scores.items() if v==max_score]
               for pr in PRIORITY:
                   if pr in winners:
@@ -325,25 +347,36 @@ jobs:
               all_it=[]
               for u in urls:
                   try:
-                      text=robust_text(u); host=urllib.parse.urlparse(u).hostname
+                      text=robust_text(u); host=urllib.parse.urlparse(u).hostname.replace('www.','')
                       all_it.extend(parse(text,host))
                   except Exception as e:
                       print("Feed error:", u, e)
               bycat[cat]=all_it; union.extend(all_it)
 
           buckets={"cataluna":[], "espana":[], "rioja":[], "global":[]}
+
           def norm_key(t):
               t=norm_lower_noacc(t or "")
               t=re.sub(r"[^\w\s]"," ",t); t=re.sub(r"\s+"," ",t).strip()
               return t[:120]
+
           seen=set()
           for it in union:
-              key=(norm_key(it["title"]), it["url"])
+              key=(norm_key(it["title"]), it.get("url",""))
               if key in seen: continue
               seen.add(key)
               reg = best_region(it)
+              # Gate estricto de Rioja: o topónimos riojanos o dominio riojano; si no, no entra
+              if reg=="rioja":
+                  t = norm_lower_noacc(f"{it['title']} {it['summary']}")
+                  host = (it["source"] or "")
+                  domain_ok = any(d in host for d in SOURCE_BOOST["rioja"])
+                  topo_ok   = token_in(t, R_INC)
+                  if not (domain_ok or topo_ok):
+                      reg = "espana" if token_in(t, E_INC) else "global"
               buckets[reg].append(it)
 
+          # ranking por intersección + backfill
           def intersect(lst):
               bag={}
               for it in lst:
@@ -353,14 +386,15 @@ jobs:
               return [v["it"] for v in sorted(bag.values(), key=lambda x:x["cnt"], reverse=True)]
 
           ranked={cat:intersect(lst) for cat,lst in buckets.items()}
+
           def backfill(cat):
               need=MAX-len(ranked[cat])
               if need<=0:return
-              more=buckets[cat]
-              for it in more:
+              for it in buckets[cat]:
                   if it in ranked[cat]: continue
                   ranked[cat].append(it)
                   if len(ranked[cat])>=MAX: break
+
           for cat in ["cataluna","rioja","espana","global"]:
               backfill(cat)
 
@@ -369,13 +403,13 @@ jobs:
               meta=impact(it)
               t=norm_lower_noacc(f"{it['title']} {it['summary']}")
               # Correcciones finales de tag
-              if re.search(r"(narcotrafic|detenido|operacion policial|violencia)", t):
+              if re.search(r"(narcotrafic|detenido|operaci[oó]n policial|violencia)", t):
                   meta["tag"]="seguridad"
-              if re.search(r"(palestina|onu|oriente proximo|macron|israel|gaza|cisjordania|hamas|reconocimiento del estado)", t):
+              if re.search(r"(palestina|onu|oriente pr[oó]ximo|israel|gaza|cisjordania|ham[aá]s|otan|ue)", t):
                   meta["tag"]="internacional"
-              if re.search(r"(meteocat|temperaturas?|ola de calor|maximas|minimas)", t):
+              if re.search(r"(meteocat|temperaturas?|ola de calor|maximas|minimas|hurac[aá]n|tif[oó]n|dana|inundaci[oó]n|tormenta)", t):
                   meta["tag"]="clima"
-              if re.search(r"(boletaire|setas?|micologia|bosque|medio natural)", t):
+              if re.search(r"(boletaire|setas?|micolog[ií]a|bosque|medio natural)", t):
                   meta["tag"]="medioambiente"
 
               return {
@@ -394,6 +428,7 @@ jobs:
             "global":[map_item("global",it) for it in ranked["global"][:MAX]],
           }
 
+          # limpieza final de strings
           for cat in out:
               if isinstance(out[cat], list):
                   for it in out[cat]:
@@ -416,10 +451,15 @@ jobs:
           name: latest-json
           path: data/latest.json
 
-      - name: Commit both JSONs
+      - name: Commit both JSONs (only if changed)
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/latest.json site/data/latest.json
-          git commit -m "chore: update latest.json $(date -u +%FT%TZ)" || echo "No changes"
-          git push || true
+          set -e
+          if git status --porcelain data/latest.json site/data/latest.json | grep -q . ; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add data/latest.json site/data/latest.json
+            git commit -m "chore: update latest.json [skip ci]" || true
+            git push || true
+          else
+            echo "No changes to commit."
+          fi
