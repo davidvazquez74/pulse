@@ -1,9 +1,9 @@
-name: Update News (hourly, python-stable)
+name: Update News (hourly)
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:          # botón manual "Run workflow"
   schedule:
-    - cron: "0 * * * *"
+    - cron: "0 * * * *"       # cada hora
 
 permissions:
   contents: write
@@ -14,109 +14,92 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - name: Checkout
+      - name: Checkout repo
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Ensure folders + seed JSON
-        run: |
-          mkdir -p scripts data
-          if [ ! -f data/latest.json ]; then
-            printf '%s\n' '{"updated_at":"1970-01-01T00:00:00Z","version":"seed","cataluna":[],"espana":[],"rioja":[],"global":[]}' > data/latest.json
-          fi
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Write build script (Python, no deps)
+      - name: Ensure folders + seed JSON
         run: |
-          cat > scripts/build_latest.py <<'PY'
-          import sys, json, re, time, urllib.request, urllib.error, xml.etree.ElementTree as ET
+          mkdir -p site/data
+          if [ ! -f site/data/latest.json ]; then
+            printf '%s\n' '{"updated_at":"1970-01-01T00:00:00Z","version":"seed","cataluna":[],"espana":[],"rioja":[],"global":[]}' > site/data/latest.json
+          fi
+
+      - name: Build latest.json (Python stdlib)
+        shell: python
+        run: |
+          import json, re, urllib.request, xml.etree.ElementTree as ET
           from datetime import datetime, timezone
 
           FEEDS = {
-              "cataluna": [
-                  "https://www.lavanguardia.com/mvc/feed/rss/catalunya",
-                  "https://www.elperiodico.com/es/rss/catalunya/rss.xml",
-              ],
-              "espana": [
-                  "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/portada",
-                  "https://www.rtve.es/rss/",
-                  "https://e00-elmundo.uecdn.es/elmundo/rss/espana.xml",
-              ],
-              "rioja": [
-                  "https://www.larioja.com/rss/2.0/portada",
-              ],
-              "global": [
-                  "https://feeds.bbci.co.uk/news/world/rss.xml",
-                  "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
-              ],
+            "cataluna": [
+              "https://www.lavanguardia.com/mvc/feed/rss/catalunya",
+              "https://www.elperiodico.com/es/rss/catalunya/rss.xml",
+            ],
+            "espana": [
+              "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/portada",
+              "https://www.rtve.es/rss/",
+              "https://e00-elmundo.uecdn.es/elmundo/rss/espana.xml",
+            ],
+            "rioja": ["https://www.larioja.com/rss/2.0/portada"],
+            "global": [
+              "https://feeds.bbci.co.uk/news/world/rss.xml",
+              "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
+            ],
           }
           MAX = 3
 
-          def fetch(url, timeout=20):
+          def fetch(url):
               req = urllib.request.Request(url, headers={"User-Agent":"PulseBot/1.0"})
-              with urllib.request.urlopen(req, timeout=timeout) as r:
+              with urllib.request.urlopen(req, timeout=20) as r:
                   return r.read()
 
           def strip_html(s):
               return re.sub(r"<[^>]+>", "", s or "").strip()
 
           def to_iso(s):
-              for fmt in ("%a, %d %b %Y %H:%M:%S %Z", "%a, %d %b %Y %H:%M:%S %z"):
-                  try:
-                      return datetime.fromtimestamp(time.mktime(time.strptime(s[:31], fmt)), tz=timezone.utc).isoformat()
-                  except Exception:
-                      pass
               try:
                   return datetime.fromisoformat(s.replace("Z","+00:00")).astimezone(timezone.utc).isoformat()
               except Exception:
                   return datetime.now(tz=timezone.utc).isoformat()
 
           def parse_items(xml_bytes, source_host):
+              items = []
               try:
                   root = ET.fromstring(xml_bytes)
               except ET.ParseError:
-                  return []
-              items = []
+                  return items
               for it in root.findall(".//item"):
-                  title = (it.findtext("title") or "").strip() or "(sin título)"
-                  link  = (it.findtext("link") or "").strip()
-                  desc  = (it.findtext("description") or "").strip()
-                  pub   = (it.findtext("pubDate") or "").strip()
-                  enc   = it.find("enclosure")
-                  img   = enc.get("url","") if enc is not None else ""
                   items.append({
-                      "title": title,
-                      "url": link,
-                      "summary": strip_html(desc),
-                      "published_at": to_iso(pub) if pub else datetime.now(tz=timezone.utc).isoformat(),
-                      "img": img,
+                      "title": (it.findtext("title") or "").strip(),
+                      "url": (it.findtext("link") or "").strip(),
+                      "summary": strip_html(it.findtext("description") or ""),
+                      "published_at": to_iso(it.findtext("pubDate") or ""),
+                      "img": "",
                       "source": source_host,
                   })
-              if not items:
-                  for it in root.findall(".//{*}entry"):
-                      title = (it.findtext("{*}title") or "").strip() or "(sin título)"
-                      link_el = it.find("{*}link")
-                      link  = (link_el.get("href","") if link_el is not None else "").strip()
-                      summary = (it.findtext("{*}summary") or it.findtext("{*}content") or "").strip()
-                      updated = (it.findtext("{*}updated") or it.findtext("{*}published") or "").strip()
-                      items.append({
-                          "title": title,
-                          "url": link,
-                          "summary": strip_html(summary),
-                          "published_at": to_iso(updated) if updated else datetime.now(tz=timezone.utc).isoformat(),
-                          "img": "",
-                          "source": source_host,
-                      })
+              for it in root.findall(".//{*}entry"):
+                  link_el = it.find("{*}link")
+                  link = link_el.get("href","") if link_el is not None else ""
+                  items.append({
+                      "title": (it.findtext("{*}title") or "").strip(),
+                      "url": link.strip(),
+                      "summary": strip_html(it.findtext("{*}summary") or it.findtext("{*}content") or ""),
+                      "published_at": to_iso(it.findtext("{*}updated") or ""),
+                      "img": "",
+                      "source": source_host,
+                  })
               return items
 
           def norm_title(t):
               t = (t or "").lower()
-              t = re.sub(r"[^\w\sáéíóúñüç]", " ", t, flags=re.UNICODE)
+              t = re.sub(r"[^\w\sáéíóúñüç]", " ", t)
               t = re.sub(r"\s+", " ", t).strip()
               return t[:80]
 
@@ -135,85 +118,51 @@ jobs:
           def collect():
               out = {"updated_at": datetime.now(tz=timezone.utc).isoformat(), "version":"live",
                      "cataluna":[], "espana":[], "rioja":[], "global":[]}
-              union_all = []
-              by_cat = {}
               for cat, urls in FEEDS.items():
                   all_items = []
                   for u in urls:
                       try:
                           xml = fetch(u)
-                          items = parse_items(xml, urllib.request.urlparse(u).hostname)
-                          all_items.extend(items); union_all.extend(items)
+                          items = parse_items(xml, u.split("/")[2])
+                          all_items.extend(items)
                       except Exception as e:
-                          print("Feed error:", u, repr(e), file=sys.stderr)
-                  by_cat[cat] = all_items
-
-              for cat, all_items in by_cat.items():
+                          print("Feed error:", u, repr(e))
                   ranked = intersect_top(all_items)
-                  used = set(); final = []
+                  used=set(); final=[]
                   for it in ranked:
                       k = norm_title(it["title"])
                       if k not in used:
                           used.add(k); final.append(it)
                       if len(final) >= MAX: break
                   if len(final) < MAX:
-                      all_items.sort(key=lambda x: x["published_at"], reverse=True)
+                      all_items.sort(key=lambda x:x["published_at"], reverse=True)
                       for it in all_items:
                           k = norm_title(it["title"])
                           if k not in used:
                               used.add(k); final.append(it)
                           if len(final) >= MAX: break
-                  if not final and union_all:
-                      union_all.sort(key=lambda x: x["published_at"], reverse=True)
-                      for it in union_all:
-                          k = norm_title(it["title"])
-                          if k not in used:
-                              used.add(k); final.append(it)
-                          if len(final) >= MAX: break
-
-                  mapped = []
+                  mapped=[]
                   for it in final[:MAX]:
                       mapped.append({
-                          "title": it["title"],
-                          "summary": it["summary"],
-                          "url": it["url"],
-                          "source": it["source"],
-                          "published_at": it["published_at"],
-                          "img": it.get("img",""),
+                          "title": it["title"], "summary": it["summary"], "url": it["url"],
+                          "source": it["source"], "published_at": it["published_at"], "img": it.get("img",""),
                           "location": "global" if cat=="global" else ("ES" if cat=="espana" else ("Cataluña" if cat=="cataluna" else "La Rioja")),
                           "category": "otros"
                       })
-                  out[cat] = mapped
-
+                  out[cat]=mapped
               return out
 
-          def main():
-              try:
-                  out = collect()
-              except Exception as e:
-                  out = {"updated_at": datetime.now(tz=timezone.utc).isoformat(), "version":"fallback",
-                         "cataluna":[], "espana":[], "rioja":[], "global":[]}
-                  print("Build FAILED, writing fallback JSON:", repr(e), file=sys.stderr)
-              with open("data/latest.json","w",encoding="utf-8") as f:
-                  json.dump(out, f, ensure_ascii=False, indent=2)
-              print("Wrote data/latest.json with sizes:",
-                    {k: len(v) for k,v in out.items() if isinstance(v,list)})
-
-          if __name__ == "__main__":
-              main()
-          PY
-
-      - name: Build latest.json (Python)
-        run: python scripts/build_latest.py
+          out = collect()
+          with open("site/data/latest.json","w",encoding="utf-8") as f:
+              json.dump(out,f,ensure_ascii=False,indent=2)
+          print("Wrote site/data/latest.json")
 
       - name: Commit changes (if any)
-        shell: bash
         run: |
-          set -euo pipefail
-          if [[ -n "$(git status --porcelain data/latest.json)" ]]; then
+          if [[ -n "$(git status --porcelain site/data/latest.json)" ]]; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add data/latest.json
+            git add site/data/latest.json
             git commit -m "chore: update latest.json [skip ci]" || true
             git push || true
           else
