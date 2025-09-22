@@ -1,45 +1,64 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Pulse — Titulares con impacto</title>
-  <link rel="stylesheet" href="styles.css" />
-  <link rel="manifest" href="manifest.json" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Pulse — Titulares</title>
+  <meta name="color-scheme" content="light dark">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="assets/icons/icon-192.png" sizes="192x192">
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+  <link rel="stylesheet" href="styles.css">
 </head>
-<body class="light">
-  <header class="app-header" role="banner">
-    <div class="logo" aria-label="Pulse">Pulse</div>
+<body>
+  <header class="app-header">
+    <div class="brand"><span class="logo">Pulse</span></div>
     <div class="header-actions">
-      <button id="teensToggle" class="chip chip--teens" aria-pressed="false" aria-label="Activar modo Teens">Teens</button>
-      <button id="refreshBtn" class="icon-btn" aria-label="Refrescar" title="Refrescar">⟳</button>
-      <button id="settingsBtn" class="icon-btn" aria-label="Ajustes" title="Ajustes">⚙</button>
+      <button id="chip-teens" class="chip" aria-pressed="false" aria-label="Activar modo Teens">Teens</button>
+      <button id="chip-mode" class="chip" aria-pressed="false" aria-label="Cambiar tema">
+        <span class="mode-icon" aria-hidden="true">☀️</span>
+        <span class="mode-text">Modo</span>
+      </button>
     </div>
   </header>
 
-  <section id="weather" class="wx-bar" aria-label="Tiempo semanal">
-    <div class="wx-head">
-      <span class="wx-title">Esta semana en <strong id="wx-city">Molins de Rei</strong></span>
-      <button id="wx-change" class="wx-link" aria-label="Cambiar ciudad" type="button">Cambiar</button>
+  <!-- Weather real: contenedor (tu script real lo poblará) -->
+  <section id="weather-strip" class="weather-strip" aria-label="Tiempo semanal">
+    <div class="w-head">
+      <span class="w-title" id="w-title">Molins de Rei · Semana</span>
+      <span class="w-updated" id="weather-updated">—</span>
     </div>
-    <div id="wx-days" class="wx-days" role="list"></div>
+    <div id="weather-days" class="w-days"></div>
   </section>
 
-  <nav class="chips" aria-label="Categorías">
-    <button class="chip chip--active" data-cat="espana">España</button>
-    <button class="chip" data-cat="cataluna">Cataluña</button>
-    <button class="chip" data-cat="rioja">La Rioja</button>
-    <button class="chip" data-cat="global">Global</button>
-    <button class="chip chip--add" id="manageCats" aria-label="Gestionar categorías">＋</button>
+  <!-- Chips de categorías -->
+  <nav class="cat-chips" aria-label="Categorías">
+    <div id="chips" class="chips-scroll"></div>
   </nav>
 
-  <main id="news" class="news" aria-live="polite"></main>
+  <!-- Contenido -->
+  <main id="content" class="content"></main>
 
-  <footer class="app-footer">
-    <small>© Pulse</small>
-  </footer>
+  <template id="card-tpl">
+    <article class="card" role="article" aria-live="polite">
+      <h3 class="card-title"></h3>
+      <p class="card-summary"></p>
+      <div class="card-meta">
+        <span class="card-source"></span>
+        <span class="card-date"></span>
+      </div>
+      <div class="card-tags" hidden>
+        <span class="badge tag"></span>
+        <span class="badge sev"></span>
+        <span class="badge hor"></span>
+        <span class="badge act"></span>
+      </div>
+      <a class="card-link" target="_blank" rel="noopener">Abrir</a>
+    </article>
+  </template>
 
-  <script src="js/main.js" defer></script>
-  <script src="js/weather.js" defer></script>
+  <script src="main.js" defer></script>
+  <!-- Importa aquí tu script de tiempo real si no lo cargas globalmente -->
+  <!-- <script src="weather.js" defer></script> -->
 </body>
 </html>
