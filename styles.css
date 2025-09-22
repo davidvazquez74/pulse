@@ -1,1 +1,39 @@
-body{font-family:Inter,system-ui,sans-serif}
+/* Base */
+*{box-sizing:border-box} html,body{margin:0;padding:0}
+:root{
+  --bg:#ffffff;--text:#0b0b0b;--muted:#6b7280;--accent:#2f6fed;
+  --bg-soft:#f8f9fa;--border:#eaeaea;--card:#fff;--shadow:0 1px 2px rgba(0,0,0,.04);
+}
+body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;line-height:1.35}
+
+/* Header */
+.app-header{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--border);z-index:5}
+.logo{font-weight:700;font-size:18px}
+.actions button{background:transparent;border:1px solid var(--border);padding:6px 8px;border-radius:10px;margin-left:8px;cursor:pointer}
+
+/* Weather widget */
+.wx-bar{margin:10px 12px;padding:10px 12px;background:var(--bg-soft);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);max-height:100px}
+.wx-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.wx-title{font-size:13px;color:var(--muted)}
+.wx-link{background:transparent;border:none;color:var(--accent);font-size:12px;cursor:pointer;padding:4px 6px;border-radius:8px}
+.wx-days{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:8px}
+.wx-col{display:flex;flex-direction:column;align-items:center;gap:4px}
+.wx-day{font-size:11px;color:var(--muted)}
+.wx-ico{font-size:16px;line-height:1}
+.wx-tmp{font-size:12px;font-weight:600}
+@media (max-width:420px){.wx-days{gap:6px}.wx-ico{font-size:15px}.wx-tmp{font-size:11px}}
+
+/* Chips */
+.chips{display:flex;gap:8px;overflow:auto;padding:6px 12px 2px 12px}
+.chip{border:1px solid var(--border);background:var(--bg-soft);padding:8px 12px;border-radius:999px;font-size:13px;color:var(--text);cursor:pointer;white-space:nowrap}
+.chip--active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.chip--add{background:transparent;color:var(--accent)}
+
+/* News */
+.news{display:grid;gap:12px;padding:12px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:12px;box-shadow:var(--shadow)}
+.card h3{margin:0 0 6px 0;font-size:16px;line-height:1.2}
+.card p{margin:0 0 8px 0;color:var(--muted);font-size:13px}
+.meta{font-size:12px;color:var(--muted)}
+.empty{padding:20px;text-align:center;color:var(--muted)}
+.app-footer{padding:20px 12px;color:var(--muted);text-align:center}
