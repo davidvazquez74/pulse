@@ -1,4 +1,4 @@
-name: Update News (hourly + impact + geofilter + force-commit)
+name: Update News (hourly + impact + advanced geofilter)
 
 on:
   workflow_dispatch:
@@ -35,10 +35,10 @@ jobs:
             printf '%s\n' '{"updated_at":"1970-01-01T00:00:00Z","version":"seed","cataluna":[],"espana":[],"rioja":[],"global":[]}' > data/latest.json
           fi
 
-      - name: Build latest.json (robust decode + impact + geofilter)
+      - name: Build latest.json (robust decode + impact + advanced geofilter)
         run: |
           python - <<'PY'
-          import json, re, urllib.request, urllib.parse, xml.etree.ElementTree as ET
+          import json, re, unicodedata, urllib.request, urllib.parse, xml.etree.ElementTree as ET
           from datetime import datetime, timezone
           from charset_normalizer import from_bytes as detect_charset
 
@@ -60,9 +60,32 @@ jobs:
           }
           MAX = 3
 
+          # ---------------- utils ----------------
           CTRL_RX = re.compile(r'[\x00-\x08\x0b\x0c\x0e-\x1f]')
+          TAG_RX  = re.compile(r'<[^>]+>')
+          IMG_RX  = re.compile(r'<img[^>]*>', re.I)
+
+          def strip_html(s:str)->str:
+              s = (s or '')
+              s = IMG_RX.sub(' ', s)
+              s = TAG_RX.sub(' ', s)
+              s = s.replace('&nbsp;',' ').replace('&amp;','&')
+              s = re.sub(r'\s+',' ', s).strip()
+              return s
+
           def clean_txt(s):
-              return CTRL_RX.sub(' ', (s or '')).replace('\\n',' ').replace('  ',' ').strip()
+              s = CTRL_RX.sub(' ', (s or ''))
+              s = s.replace('\\n',' ')
+              s = re.sub(r'\s+',' ', s).strip()
+              return s
+
+          def strip_accents(s:str)->str:
+              if not s: return s
+              nf = unicodedata.normalize('NFD', s)
+              return ''.join(ch for ch in nf if unicodedata.category(ch) != 'Mn')
+
+          def norm_lower_noacc(s:str)->str:
+              return strip_accents((s or '').lower())
 
           def robust_text(url):
               req = urllib.request.Request(url, headers={"User-Agent":"PulseBot/1.0"})
@@ -84,53 +107,54 @@ jobs:
                   root = ET.fromstring(xml_str.encode('utf-8'))
               except ET.ParseError:
                   return items
+              # RSS
               for it in root.findall('.//item'):
-                  items.append({
-                      "title": clean_txt(it.findtext('title')) or '(sin título)',
-                      "url": (it.findtext('link') or '').strip(),
-                      "summary": clean_txt(it.findtext('description')),
-                      "published_at": datetime.now(tz=timezone.utc).isoformat(),
-                      "img": "", "source": host
-                  })
+                  title = strip_html(clean_txt(it.findtext('title'))) or '(sin título)'
+                  link  = (it.findtext('link') or '').strip()
+                  desc  = strip_html(it.findtext('description') or '')
+                  pub   = datetime.now(tz=timezone.utc).isoformat()
+                  items.append({"title": title, "url": link, "summary": desc,
+                                "published_at": pub, "img": "", "source": host})
+              # Atom
               for it in root.findall('.//{*}entry'):
+                  title = strip_html(clean_txt(it.findtext('{*}title'))) or '(sin título)'
                   link_el = it.find('{*}link'); link = link_el.get('href','') if link_el is not None else ''
-                  items.append({
-                      "title": clean_txt(it.findtext('{*}title')) or '(sin título)',
-                      "url": link.strip(),
-                      "summary": clean_txt(it.findtext('{*}summary') or it.findtext('{*}content')),
-                      "published_at": datetime.now(tz=timezone.utc).isoformat(),
-                      "img": "", "source": host
-                  })
+                  desc  = strip_html(it.findtext('{*}summary') or it.findtext('{*}content') or '')
+                  pub   = datetime.now(tz=timezone.utc).isoformat()
+                  items.append({"title": title, "url": link.strip(), "summary": desc,
+                                "published_at": pub, "img": "", "source": host})
               return items
 
-          # Impact engine
+          # ---------------- impact engine ----------------
           KW = {
             r"(eur[ií]bor|bce|hipoteca|inflaci[oó]n)": ("finanzas",2,"este mes","vigilar"),
             r"(gasolina|di[eé]sel|petr[oó]leo|electricidad|gas)": ("energía",2,"esta semana","vigilar"),
             r"(huelga|paro).*(tren|metro|bus|vuelo)": ("movilidad",2,"hoy","planificar"),
             r"(alquiler|vivienda|inmobiliaria)": ("vivienda",2,"este mes","vigilar"),
             r"(impuestos|iva|subsidio|bono)": ("impuestos",2,"este mes","vigilar"),
-            r"(dana|temporal|lluvias|ola de calor|inundaci[oó]n)": ("clima",2,"hoy","planificar"),
-            r"(cad[aá]ver|muertos?|asesinato|violencia)": ("seguridad",1,"hoy","vigilar"),
-            r"(concierto|festival|partido|marat[oó]n|celebraci[oó]n)": ("eventos",2,"esta semana","planificar"),
-            r"(champions|liga|mundial|copa|bar[cç]a|real madrid)": ("deporte",2,"hoy","planificar"),
+            r"(meteocat|temperaturas?|ola de calor|vuelve el calor|maximas|minimas)": ("clima",2,"hoy","planificar"),
+            r"(boletaire|setas?|micologia|bosque|medio natural)": ("medioambiente",2,"esta semana","vigilar"),
+            r"(cadaver|muertos?|asesinato|violencia|derrumbre|colapso)": ("seguridad",1,"hoy","vigilar"),
+            r"(concierto|festival|partido|maraton|celebracion)": ("eventos",2,"esta semana","planificar"),
+            r"(champions|liga|mundial|copa|barca|real madrid|baloncesto|seleccionador)": ("deporte",2,"hoy","planificar"),
             r"(covid|vacuna|brote|epidemia|hospital)": ("salud",2,"esta semana","vigilar"),
-            r"\bIA\b|ciberseguridad|hackeo": ("tecnología",1,"esta semana","FYI"),
-            r"empresa|fusi[oó]n|resultados|cotizaci[oó]n": ("negocios",1,"este mes","FYI"),
+            r"\bia\b|ciberseguridad|hackeo": ("tecnología",1,"esta semana","FYI"),
+            r"empresa|fusion|resultados|cotizacion": ("negocios",1,"este mes","FYI"),
             r"juicio|sentencia|tribunal|fiscal": ("justicia",1,"esta semana","FYI"),
-            r"incendio|contaminaci[oó]n|vertido|desastre ambiental": ("medioambiente",2,"hoy","vigilar"),
+            r"incendio|contaminacion|vertido|desastre ambiental": ("medioambiente",2,"hoy","vigilar"),
+            r"(palestina|onu|oriente proximo|macron|israel|gaza|cisjordania|hamas|reconocimiento del estado)": ("internacional",2,"esta semana","FYI"),
           }
-          SENSITIVE = re.compile(r"(cad[aá]ver|muertos?|asesinato|violencia|epidemia|brote|covid)", re.I)
+          SENSITIVE = re.compile(r"(cadaver|muertos?|asesinato|violencia|epidemia|brote|covid|guerra|conflicto)", re.I)
           TAGS = {"finanzas","economia","negocios","energía","movilidad","vivienda","empleo","impuestos","clima",
                   "salud","educacion","eventos","deporte","cultura","seguridad","justicia","internacional","tecnología",
                   "medioambiente","transporte","salud_publica","otros"}
 
           def cw(s,maxw):
-              w=re.split(r"\\s+", (s or '').strip())
+              w=re.split(r"\s+", (s or '').strip())
               return " ".join(w[:maxw])
 
           def impact(it):
-              t=f"{it['title']} {it['summary']}".lower()
+              t=norm_lower_noacc(f"{it['title']} {it['summary']}")
               tag,sev,hz,act=("otros",0,"sin plazo","FYI")
               for rx,conf in KW.items():
                   if re.search(rx,t): tag,sev,hz,act=conf; break
@@ -142,21 +166,22 @@ jobs:
                 "movilidad":"Planifica rutas y horarios alternativos hoy para evitar retrasos.",
                 "vivienda":"Valora renegociar alquiler o retrasar decisiones este mes.",
                 "impuestos":"Comprueba deducciones y plazos fiscales; evita recargos.",
-                "clima":"Evita desplazamientos innecesarios y protege exteriores hoy.",
-                "seguridad":"Mantén prudencia y sigue indicaciones oficiales en tu zona.",
+                "clima":"Adapta ropa y horarios: calor/tiempo inestable esta semana.",
+                "seguridad":"Evita la zona y sigue indicaciones oficiales.",
                 "eventos":"Si asistes, prevé transporte y horarios con antelación.",
-                "deporte":"Prevé cortes y afluencias; usa transporte público.",
-                "salud":"Revisa pautas sanitarias locales y evita aglomeraciones.",
+                "deporte":"Prevé afluencias; usa transporte público.",
+                "salud":"Revisa pautas locales y evita aglomeraciones.",
                 "tecnología":"Actualiza sistemas y activa verificación en dos pasos.",
                 "negocios":"Monitorea costes/ingresos y ajusta planes.",
                 "justicia":"Toma nota; posibles efectos de cumplimiento.",
-                "medioambiente":"Evita zonas afectadas; sigue avisos.",
+                "medioambiente":"Respeta normas en bosques y evita áreas sensibles.",
+                "internacional":"Sigue fuentes fiables; sin efecto inmediato en tu rutina.",
                 "otros":"Sin efecto directo en tu día a día."
               }
               adult=cw(adult_map.get(tag,"Sin efecto directo en tu día a día."),22)
 
               if sensitive:
-                  teen="Información importante. Sigue indicaciones y no difundas rumores."
+                  teen="Info importante. Sigue indicaciones; no difundas rumores."
               else:
                   teen_map={
                     "movilidad":"Organízate: puede haber lío en calles/metro. 🚇",
@@ -164,14 +189,14 @@ jobs:
                     "deporte":"Habrá mucha gente; metro mejor. ⚽",
                     "energía":"Ojo a precios: controla gasto. 💡",
                     "finanzas":"Atento a tu cuota: puede cambiar. 💸",
-                    "clima":"Prepárate: clima duro, cuídate.",
-                    "tecnología":"Actualiza apps y pon 2FA. 🔐",
-                    "salud":"Cuídate y sigue consejos.",
+                    "clima":"Pilla ropa ligera y agua. ☀️",
+                    "medioambiente":"Cuida el bosque; deja todo limpio. 🍃",
+                    "internacional":"Es noticia global; infórmate bien.",
                   }
                   teen=teen_map.get(tag,"Tranqui, solo para estar al día.")
               teen=cw(teen,18)
               if len(re.findall(r"[\U0001F300-\U0001FAFF\u2600-\u27BF]",teen))>1:
-                  teen=re.sub(r"([\U0001F300-\U0001FAFF\u2600-\u27BF]).*$", r"\\1", teen)
+                  teen=re.sub(r"([\U0001F300-\U0001FAFF\u2600-\u27BF]).*$", r"\1", teen)
 
               conf=0.7 if tag!="otros" else 0.5
               if conf<0.5:
@@ -185,41 +210,116 @@ jobs:
               if tag not in TAGS: tag="otros"
               return {"adult_impact":adult,"teen_impact":teen,"tag":tag,"severity":sev,"horizon":hz,"action":act,"rationale":f"Reglas por keywords; sensible={'sí' if sensitive else 'no'}; fuente={it['source']}", "confidence":conf}
 
-          # Geo scoring
-          CITIES_CAT={"barcelona","bcn","girona","gerona","lleida","lerida","tarragona","sabadell","terrassa","badalona","hospitalet","l'hospitalet","mataró","mataro","reus","manresa","figueres","granollers","molins de rei","sitges","sants","eixample","gràcia","gracia"}
-          CAT_TOKENS={"cataluña","catalunya","catalana","aliança catalana","orriols"}
-          CITIES_RIOJA={"logroño","logrono","haro","calahorra","arnedo","najera","nàjera","albelda de iregua","albelda","la rioja","rioja"}
-          FOREIGN={"estados unidos","eeuu","ee.uu.","francia","alemania","reino unido","uk","china","rusia","ucrania","italia","portugal","méxico","mexico","brasil","japón","japon"}
-          WL_CAT={"elperiodico.com","lavanguardia.com","ccma.cat","ara.cat","naciodigital.cat","diaridebarcelona.cat","beteve.cat"}
-          WL_RIOJA={"larioja.com","rioja2.com","nuevecuatrouno.com","larioja.org"}
-          WL_ES={"elpais.com","rtve.es","elmundo.es","abc.es","eldiario.es","elespanol.com"}
+          # ---------------- semantic filter config (tu JSON) ----------------
+          PRIORITY = ["rioja","cataluna","espana","global"]
 
-          def score_region(text,host,region):
-              t=text.lower(); s=0
+          SOURCE_BOOST = {
+            "cataluna": ["lavanguardia.com","elperiodico.com","ara.cat","elnacional.cat","naciodigital.cat","324.cat","ccma.cat"],
+            "rioja":    ["larioja.com","rioja2.com","nuevecuatrouno.com"],
+            "espana":   ["elpais.com","rtve.es","elmundo.es","abc.es","larazon.es","elespanol.com"],
+            "global":   ["bbc.co.uk","bbc.com","nytimes.com","cnn.com","dw.com","reuters.com","apnews.com"],
+          }
+
+          C_INC = set(map(norm_lower_noacc, [
+            "cataluña","catalunya","catalan","generalitat","parlament","mossos","barcelona","bcn","girona","figueres",
+            "lleida","lerida","tarragona","reus","tortosa","amposta","badalona","l'hospitalet","hospitalet","terrassa",
+            "sabadell","granollers","manresa","igualada","mataro","sitges","vilafranca del penedes","penedes","barcelones",
+            "baix llobregat","valles","vallès","maresme","anoia","garraf","emporda","alt emporda","baix emporda",
+            "costa brava","costa daurada","pirineu","pirineos catalanes","rodalies","fgc","tmb","tram","port de barcelona",
+            "el prat","aeropuerto el prat","diada","procés","proces","soberanismo","independentismo","catsalut",
+            "servei catala de la salut","ics","bombers de la generalitat","tsjc","barça","fc barcelona","rcd espanyol",
+            "montjuic","sants"
+          ]))
+          C_EXC = set(map(norm_lower_noacc, ["la rioja","riojano","riojana","logroño","calahorra","arnedo"]))
+
+          E_INC = set(map(norm_lower_noacc, [
+            "españa","gobierno","moncloa","congreso","senado","boe","ministerio","ministro","ministra","guardia civil",
+            "policia nacional","cni","audiencia nacional","tribunal supremo","tribunal constitucional","ibex 35","ine",
+            "aena","renfe","adif","dgt","aemet","seguridad social","sepe","hacienda","agencia tributaria","tesoro",
+            "cnmc","cnmv","banco de españa","zarzuela","casa real","elecciones generales","ley organica","real decreto",
+            "pp","psoe","vox","sumar","podemos","comunidades autonomas","ccaa","delegacion del gobierno","defensa",
+            "interior","sanidad","educacion","transportes","transicion ecologica","economia"
+          ]))
+          E_EXC = set(map(norm_lower_noacc, list(C_EXC) + [
+            "haro","najera","alfaro","ezcaray"
+          ]))
+
+          R_INC = set(map(norm_lower_noacc, [
+            "la rioja","riojano","riojana","logroño","calahorra","arnedo","haro","najera","nájera","alfaro","ezcaray",
+            "santo domingo de la calzada","cenicero","briones","san millan de la cogolla","san millán de la cogolla",
+            "villamediana de iregua","lardero","murillo de rio leza","navarrete","cameros","iber","najerilla",
+            "parlamento de la rioja","gobierno de la rioja","seris","hospital san pedro","universidad de la rioja","ur",
+            "policia local de logroño","ayuntamiento de logroño","rio ebro (logroño)","feria de la vendimia","san mateo (logroño)"
+          ]))
+          R_EXC_WINE = set(map(norm_lower_noacc, [
+            "doca rioja","denominacion de origen rioja","bodega","enoturismo","exportaciones de vino","vino","uvas","enologia","enológica"
+          ]))
+
+          G_INC = set(map(norm_lower_noacc, [
+            "internacional","union europea","ue","comision europea","parlamento europeo","bce","bruselas","estrasburgo","luxemburgo",
+            "otan","onu","oms","oiea","g7","g20","estados unidos","eeuu","casa blanca","congreso estadounidense","reino unido","londres",
+            "downing street","francia","paris","alemania","berlin","italia","roma","portugal","lisboa","rusia","moscu","ucrania",
+            "china","pekin","beijing","shanghai","japon","corea del sur","india","israel","gaza","cisjordania","iran","irak","siria","libano",
+            "mexico","argentina","brasil","colombia","chile","peru","canada","australia","sudafrica","kenia","nigeria"
+          ]))
+
+          def token_in(text:str, bag:set)->bool:
+              return any(t in text for t in bag)
+
+          def source_boost(host:str, url:str, region:str)->int:
+              h = host or ''
+              u = url or ''
+              pts = 0
+              for pat in SOURCE_BOOST.get(region, []):
+                  if pat in h or pat in u:
+                      pts += 2
+              # paths específicos de elperiodico catalunya
+              if region=="cataluna" and ("elperiodico.com/es/catalunya" in u):
+                  pts += 2
+              return pts
+
+          def is_rioja_wine_only(text:str)->bool:
+              # Aparece "rioja" en contexto de vino y NO aparecen topónimos/instituciones riojanas
+              has_wine = token_in(text, R_EXC_WINE)
+              has_topos = token_in(text, R_INC - R_EXC_WINE)
+              has_rioja_word = ("rioja" in text)
+              return has_rioja_word and has_wine and not has_topos
+
+          def score_region(title:str, summary:str, host:str, url:str, region:str)->int:
+              t = norm_lower_noacc(f"{title} {summary}")
+              s = 0
               if region=="cataluna":
-                  if any(w in t for w in CITIES_CAT): s+=3
-                  if any(w in t for w in CAT_TOKENS): s+=3
-                  if host in WL_CAT: s+=2
+                  if token_in(t, C_INC): s += 3
+                  if token_in(t, C_EXC): s -= 2
               elif region=="rioja":
-                  if any(w in t for w in CITIES_RIOJA): s+=3
-                  if host in WL_RIOJA: s+=2
+                  if token_in(t, R_INC): s += 3
+                  if is_rioja_wine_only(t): s -= 4  # override vino: no clasificar como rioja
               elif region=="espana":
-                  base=2 if ("españa" in t or "espana" in t) else 0
-                  if any(w in t for w in CAT_TOKENS): base=min(base,1)
-                  s+=base
-                  if host in WL_ES: s+=2
-              if s<2 and any(w in t for w in FOREIGN): s-=2
+                  if token_in(t, E_INC): s += 2
+                  if token_in(t, E_EXC): s -= 1
+              elif region=="global":
+                  if token_in(t, G_INC): s += 2
+              s += source_boost(host, url, region)
               return s
 
           def best_region(item):
-              text=f"{item['title']} {item['summary']}"; host=item["source"]
-              scores={"cataluna":score_region(text,host,"cataluna"),
-                      "rioja":score_region(text,host,"rioja"),
-                      "espana":score_region(text,host,"espana"),
-                      "global":0}
-              region,sc=max(scores.items(), key=lambda kv: kv[1])
-              return region if sc>=2 else "global"
+              title, summary = item["title"], item["summary"]
+              host = item["source"]; url = item.get("url","")
 
+              scores = {reg: score_region(title, summary, host, url, reg)
+                        for reg in ["rioja","cataluna","espana","global"]}
+              max_score = max(scores.values())
+              # umbral estándar
+              if max_score < 2:
+                  return "global"
+              # empate -> prioridad
+              winners = [r for r,v in scores.items() if v==max_score]
+              for pr in PRIORITY:
+                  if pr in winners:
+                      return pr
+              return "global"
+
+          # ---------------- collect ----------------
           union=[]; bycat={}
           for cat,urls in FEEDS.items():
               all_it=[]
@@ -232,19 +332,22 @@ jobs:
               bycat[cat]=all_it; union.extend(all_it)
 
           buckets={"cataluna":[], "espana":[], "rioja":[], "global":[]}
-          def norm(t):
-              t=(t or "").lower(); t=re.sub(r"[^\w\sáéíóúñüç]"," ",t); t=re.sub(r"\s+"," ",t).strip(); return t[:120]
+          def norm_key(t):
+              t=norm_lower_noacc(t or "")
+              t=re.sub(r"[^\w\s]"," ",t); t=re.sub(r"\s+"," ",t).strip()
+              return t[:120]
           seen=set()
           for it in union:
-              key=(norm(it["title"]), it["url"])
+              key=(norm_key(it["title"]), it["url"])
               if key in seen: continue
               seen.add(key)
-              buckets[best_region(it)].append(it)
+              reg = best_region(it)
+              buckets[reg].append(it)
 
           def intersect(lst):
               bag={}
               for it in lst:
-                  k=norm(it["title"])
+                  k=norm_key(it["title"])
                   if k not in bag: bag[k]={"it":it,"cnt":0}
                   bag[k]["cnt"]+=1
               return [v["it"] for v in sorted(bag.values(), key=lambda x:x["cnt"], reverse=True)]
@@ -261,11 +364,20 @@ jobs:
           for cat in ["cataluna","rioja","espana","global"]:
               backfill(cat)
 
+          # --------- impact + mapping ----------
           def map_item(cat,it):
               meta=impact(it)
-              t=(it["title"]+" "+it["summary"]).lower()
-              if re.search(r"narcotr[aá]fico|detenido|operaci[oó]n policial", t): meta["tag"]="seguridad"
-              if re.search(r"receta|gastronom[ií]a|plato|postre|origen .*catalana", t): meta["tag"]="cultura"
+              t=norm_lower_noacc(f"{it['title']} {it['summary']}")
+              # Correcciones finales de tag
+              if re.search(r"(narcotrafic|detenido|operacion policial|violencia)", t):
+                  meta["tag"]="seguridad"
+              if re.search(r"(palestina|onu|oriente proximo|macron|israel|gaza|cisjordania|hamas|reconocimiento del estado)", t):
+                  meta["tag"]="internacional"
+              if re.search(r"(meteocat|temperaturas?|ola de calor|maximas|minimas)", t):
+                  meta["tag"]="clima"
+              if re.search(r"(boletaire|setas?|micologia|bosque|medio natural)", t):
+                  meta["tag"]="medioambiente"
+
               return {
                 "title": it["title"], "summary": it["summary"], "url": it["url"],
                 "source": it["source"], "published_at": it["published_at"], "img":"",
