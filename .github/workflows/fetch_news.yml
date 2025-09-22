@@ -63,13 +63,12 @@ jobs:
             ],
           }
 
-          MAX = 6  # hasta 6 noticias por sección
+          MAX = 6  # mostrar hasta 6 noticias por sección
 
           # ---------------- utils ----------------
           CTRL_RX = re.compile(r'[\x00-\x08\x0b\x0c\x0e-\x1f]')
           TAG_RX  = re.compile(r'<[^>]+>')
           IMG_RX  = re.compile(r'<img[^>]*>', re.I)
-          EMOJI_RX = re.compile(r"[\U0001F300-\U0001FAFF\u2600-\u27BF]")
 
           def strip_html(s:str)->str:
               s = (s or '')
@@ -107,28 +106,6 @@ jobs:
                       text = data.decode('latin-1', errors='replace')
                   return CTRL_RX.sub(' ', text).replace('\\\\','\\')
 
-          # --- NUEVO: normaliza URL y host ---
-          def clean_url(u: str) -> str:
-              try:
-                  p = urllib.parse.urlparse(u or "")
-                  q = urllib.parse.parse_qsl(p.query, keep_blank_values=True)
-                  q = [(k,v) for (k,v) in q if not k.lower().startswith("utm_")]
-                  p = p._replace(query=urllib.parse.urlencode(q))
-                  return urllib.parse.urlunparse(p)
-              except Exception:
-                  return u or ""
-
-          def norm_host(u_or_host: str) -> str:
-              h = u_or_host or ""
-              if "://" in h:
-                  try:
-                      h = urllib.parse.urlparse(h).hostname or h
-                  except Exception:
-                      pass
-              h = (h or "").lower()
-              if h.startswith("www."): h = h[4:]
-              return h
-
           def parse(xml_str, host):
               items=[]
               try:
@@ -138,19 +115,19 @@ jobs:
               # RSS
               for it in root.findall('.//item'):
                   title = strip_html(clean_txt(it.findtext('title'))) or '(sin título)'
-                  link  = clean_url((it.findtext('link') or '').strip())
+                  link  = (it.findtext('link') or '').strip()
                   desc  = strip_html(it.findtext('description') or '')
                   pub   = datetime.now(tz=timezone.utc).isoformat()
                   items.append({"title": title, "url": link, "summary": desc,
-                                "published_at": pub, "img": "", "source": norm_host(host)})
+                                "published_at": pub, "img": "", "source": host})
               # Atom
               for it in root.findall('.//{*}entry'):
                   title = strip_html(clean_txt(it.findtext('{*}title'))) or '(sin título)'
                   link_el = it.find('{*}link'); link = link_el.get('href','') if link_el is not None else ''
                   desc  = strip_html(it.findtext('{*}summary') or it.findtext('{*}content') or '')
                   pub   = datetime.now(tz=timezone.utc).isoformat()
-                  items.append({"title": title, "url": clean_url((link or '').strip()), "summary": desc,
-                                "published_at": pub, "img": "", "source": norm_host(host)})
+                  items.append({"title": title, "url": (link or '').strip(), "summary": desc,
+                                "published_at": pub, "img": "", "source": host})
               return items
 
           # ---------------- impact engine ----------------
@@ -179,15 +156,16 @@ jobs:
                   "salud","educacion","eventos","deporte","cultura","seguridad","justicia","internacional","tecnología",
                   "medioambiente","transporte","salud_publica","otros"}
 
+          EMOJI_RX = re.compile(r"[\U0001F300-\U0001FAFF\u2600-\u27BF]")
+
           def clip_words(s, maxw):
               w=re.split(r"\s+", (s or '').strip())
               return " ".join(w[:maxw])
 
           def sanitize_impact(s, is_teen=False):
               if not s: return ""
-              t = re.sub(r"\\\d+", "", s)
+              t = re.sub(r"\\\d+", "", s)  # quita \1, \2…
               t = re.sub(r"\s+"," ",t).strip()
-              # emojis: teen máx 1, adulto 0
               if is_teen:
                   em = EMOJI_RX.findall(t)
                   if len(em) > 1:
@@ -267,18 +245,15 @@ jobs:
             "global":   ["bbc.co.uk","bbc.com","nytimes.com","cnn.com","dw.com","reuters.com","apnews.com"],
           }
 
-          # Ampliado con comarcas/municipios frecuentes
           C_INC = set(map(norm_lower_noacc, [
-            "cataluña","catalunya","catalan","generalitat","parlament","mossos",
-            "barcelona","bcn","girona","figueres","lleida","lerida","tarragona",
-            "reus","tortosa","amposta","badalona","l'hospitalet","hospitalet","terrassa",
-            "sabadell","granollers","manresa","igualada","mataro","sitges","vilafranca del penedes","penedes",
-            "barcelones","baix llobregat","valles","vallès","maresme","anoia","garraf","emporda","alt emporda","baix emporda",
-            "costa brava","costa daurada","pirineu","pirineos catalanes","rodalies","fgc","tmb","tram",
-            "port de barcelona","el prat","aeropuerto el prat","diada","procés","proces","soberanismo","independentismo",
-            "catsalut","servei catala de la salut","ics","bombers de la generalitat","tsjc","barça","fc barcelona","rcd espanyol",
-            "montjuic","sants","alella","sallent","bages","ripolles","ripollès","balandrau","garrotxa","bergueda","berguedà","osona",
-            "valldoreix","sant cugat","sant boi","cornella","castelldefels","martorell"
+            "cataluña","catalunya","catalan","generalitat","parlament","mossos","barcelona","bcn","girona","figueres",
+            "lleida","lerida","tarragona","reus","tortosa","amposta","badalona","l'hospitalet","hospitalet","terrassa",
+            "sabadell","granollers","manresa","igualada","mataro","sitges","vilafranca del penedes","penedes","barcelones",
+            "baix llobregat","valles","vallès","maresme","anoia","garraf","emporda","alt emporda","baix emporda",
+            "costa brava","costa daurada","pirineu","pirineos catalanes","rodalies","fgc","tmb","tram","port de barcelona",
+            "el prat","aeropuerto el prat","diada","procés","proces","soberanismo","independentismo","catsalut",
+            "servei catala de la salut","ics","bombers de la generalitat","tsjc","barça","fc barcelona","rcd espanyol",
+            "montjuic","sants"
           ]))
           C_EXC = set(map(norm_lower_noacc, ["la rioja","riojano","riojana","logroño","calahorra","arnedo"]))
 
@@ -314,21 +289,16 @@ jobs:
           def token_in(text:str, bag:set)->bool:
               return any(t in text for t in bag)
 
-          # --- NUEVO: boosts por dominio y por ruta ---
           def source_boost(host:str, url:str, region:str)->int:
-              h = norm_host(host)
-              u = clean_url(url or "")
+              h = host or ''
+              u = url or ''
               pts = 0
               for pat in SOURCE_BOOST.get(region, []):
                   if pat in h or pat in u:
                       pts += 2
-              path = (urllib.parse.urlparse(u).path or "").lower()
-              if region == "cataluna":
-                  if "/catalunya" in path or "/cat/" in path:
-                      pts += 3
-              if region == "rioja":
-                  if "/la-rioja" in path or "/rioja" in path or "/logrono" in path or "/logroño" in path:
-                      pts += 3
+              # rutas claras de catalana en El Periódico
+              if region=="cataluna" and ("elperiodico.com/es/catalunya" in u):
+                  pts += 2
               return pts
 
           def is_rioja_wine_only(text:str)->bool:
@@ -345,7 +315,7 @@ jobs:
                   if token_in(t, C_EXC): s -= 2
               elif region=="rioja":
                   if token_in(t, R_INC): s += 3
-                  if is_rioja_wine_only(t): s -= 4  # override vino
+                  if is_rioja_wine_only(t): s -= 4  # override vino → no clasificar como rioja
               elif region=="espana":
                   if token_in(t, E_INC): s += 2
                   if token_in(t, E_EXC): s -= 1
@@ -360,11 +330,9 @@ jobs:
               scores = {reg: score_region(title, summary, host, url, reg)
                         for reg in ["rioja","cataluna","espana","global"]}
               max_score = max(scores.values())
-              winners = [r for r,v in scores.items() if v==max_score]
-              # Umbral por región: Rioja requiere señal más fuerte
-              min_thr = 3 if "rioja" in winners else 2
-              if max_score < min_thr:
+              if max_score < 2:
                   return "global"
+              winners = [r for r,v in scores.items() if v==max_score]
               for pr in ["rioja","cataluna","espana","global"]:
                   if pr in winners:
                       return pr
@@ -376,7 +344,7 @@ jobs:
               all_it=[]
               for u in urls:
                   try:
-                      text=robust_text(u); host=norm_host(u)
+                      text=robust_text(u); host=urllib.parse.urlparse(u).hostname.replace('www.','')
                       all_it.extend(parse(text,host))
                   except Exception as e:
                       print("Feed error:", u, e)
@@ -395,16 +363,13 @@ jobs:
               if key in seen: continue
               seen.add(key)
               reg = best_region(it)
-              # Gate estricto de Rioja: dominio/ruta riojano o topónimos claros; si no, reubicar
+              # Gate estricto de Rioja: o topónimos riojanos o dominio riojano; si no, no entra
               if reg=="rioja":
                   t = norm_lower_noacc(f"{it['title']} {it['summary']}")
-                  h = norm_host(it.get("source",""))
-                  u = clean_url(it.get("url",""))
-                  path = (urllib.parse.urlparse(u).path or "").lower()
-                  domain_ok = any(d in h for d in SOURCE_BOOST["rioja"])
+                  host = (it["source"] or "")
+                  domain_ok = any(d in host for d in SOURCE_BOOST["rioja"])
                   topo_ok   = token_in(t, R_INC)
-                  path_ok   = any(seg in path for seg in ["/la-rioja", "/rioja", "/logrono", "/logroño"])
-                  if not (domain_ok or topo_ok or path_ok):
+                  if not (domain_ok or topo_ok):
                       reg = "espana" if token_in(t, E_INC) else "global"
               buckets[reg].append(it)
 
@@ -491,10 +456,17 @@ jobs:
           path: data/latest.json
 
       - name: Commit both JSONs (only if changed)
+        shell: bash
         run: |
-          set -e
-          if git status --porcelain data/latest.json site/data/latest.json | grep -q . ; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          set -euo pipefail
+          if [[ -n "$(git status --porcelain data/latest.json site/data/latest.json || true)" ]]; then
+            git config --global user.name 'github-actions[bot]'
+            git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
             git add data/latest.json site/data/latest.json
-            git commit -m "
+            git commit -m 'chore: update latest.json [skip ci]' || true
+            BR="${GITHUB_REF_NAME:-$(git rev-parse --abbrev-ref HEAD)}"
+            git pull --rebase --autostash origin "$BR" || true
+            git push origin HEAD:"$BR" || git push || true
+          else
+            echo "No changes to commit."
+          fi
