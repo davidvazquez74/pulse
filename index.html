@@ -1,23 +1,48 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Pulse</title>
-  <link rel="stylesheet" href="styles.css"/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pulse — Titulares con impacto</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="manifest" href="manifest.json" />
 </head>
-<body>
-  <header class="app-header">
-    <div class="logo">Pulse</div>
-    <button id="teensToggle" class="chip chip--teens" aria-pressed="false">Teens</button>
+<body class="light">
+  <header class="app-header" role="banner">
+    <div class="logo" aria-label="Pulse">Pulse</div>
+    <div class="header-actions">
+      <!-- Chip único: Teens -->
+      <button id="teensToggle" class="chip chip--teens" aria-pressed="false" aria-label="Activar modo Teens">Teens</button>
+      <button id="refreshBtn" class="icon-btn" aria-label="Refrescar" title="Refrescar">⟳</button>
+      <button id="settingsBtn" class="icon-btn" aria-label="Ajustes" title="Ajustes">⚙</button>
+    </div>
   </header>
-  <nav class="chips">
+
+  <!-- Weather widget -->
+  <section id="weather" class="wx-bar" aria-label="Tiempo semanal">
+    <div class="wx-head">
+      <span class="wx-title">Esta semana en <strong id="wx-city">Molins de Rei</strong></span>
+      <button id="wx-change" class="wx-link" aria-label="Cambiar ciudad" type="button">Cambiar</button>
+    </div>
+    <div id="wx-days" class="wx-days" role="list"></div>
+  </section>
+
+  <!-- Chips -->
+  <nav class="chips" aria-label="Categorías">
     <button class="chip chip--active" data-cat="espana">España</button>
     <button class="chip" data-cat="cataluna">Cataluña</button>
     <button class="chip" data-cat="rioja">La Rioja</button>
     <button class="chip" data-cat="global">Global</button>
+    <button class="chip chip--add" id="manageCats" aria-label="Gestionar categorías">＋</button>
   </nav>
-  <main id="news"></main>
-  <script src="js/main.js"></script>
+
+  <main id="news" class="news" aria-live="polite"></main>
+
+  <footer class="app-footer">
+    <small>© Pulse</small>
+  </footer>
+
+  <script src="js/main.js" defer></script>
+  <script src="js/weather.js" defer></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-// site/js/weather.js — widget semanal robusto (Molins de Rei por defecto)
+// site/js/weather.js — widget semanal compacto (Molins de Rei por defecto)
 (function () {
   const elDays = document.getElementById('wx-days');
   const elCity = document.getElementById('wx-city');
