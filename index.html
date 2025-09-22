@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Pulse — Titulares</title>
+  <title>Pulse</title>
   <meta name="color-scheme" content="light dark">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="assets/icons/icon-192.png" sizes="192x192">
@@ -11,49 +11,35 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header class="app-header">
-    <div class="brand"><span class="logo">Pulse</span></div>
-    <div class="header-actions">
-      <button id="chip-teens" class="chip" aria-pressed="false" aria-label="Activar modo Teens">Teens</button>
-      <button id="chip-mode" class="chip" aria-pressed="false" aria-label="Cambiar tema">
-        <span class="mode-icon" aria-hidden="true">☀️</span>
-        <span class="mode-text">Modo</span>
-      </button>
+  <header class="bar">
+    <h1>Pulse</h1>
+    <div class="actions">
+      <button id="chip-teens" class="chip" aria-pressed="false">Teens</button>
+      <button id="chip-mode" class="chip" aria-pressed="false" title="Tema"><span class="mode-ico">☀️</span> Modo</button>
     </div>
   </header>
 
-  <!-- Widget tiempo (Molins de Rei) -->
-  <section id="weather-strip" class="weather-strip" aria-label="Tiempo semanal">
-    <div class="w-head">
-      <span class="w-title" id="w-title">Molins de Rei · Semana</span>
-      <span class="w-updated" id="weather-updated">—</span>
+  <section class="wx" aria-label="Tiempo semanal">
+    <div class="wx-head">
+      <div class="wx-title"><strong>Esta semana en <span id="wx-city">Molins de Rei</span></strong></div>
+      <button class="wx-change" type="button" aria-label="Cambiar ubicación" disabled>Cambiar</button>
     </div>
-    <div id="weather-days" class="w-days"></div>
+    <div id="weather-days" class="wx-days" aria-live="polite"></div>
+    <div class="wx-foot"><span id="weather-updated">—</span></div>
   </section>
 
-  <!-- Chips categorías -->
-  <nav class="cat-chips" aria-label="Categorías">
-    <div id="chips" class="chips-scroll"></div>
+  <nav class="cats" aria-label="Categorías">
+    <div id="chips" class="chips"></div>
   </nav>
 
-  <!-- Contenido -->
-  <main id="content" class="content"></main>
+  <main id="content" class="wrap"></main>
 
-  <template id="card-tpl">
-    <article class="card" role="article" aria-live="polite">
-      <h3 class="card-title"></h3>
-      <p class="card-summary"></p>
-      <div class="card-meta">
-        <span class="card-source"></span>
-        <span class="card-date"></span>
-      </div>
-      <div class="card-tags" hidden>
-        <span class="badge tag"></span>
-        <span class="badge sev"></span>
-        <span class="badge hor"></span>
-        <span class="badge act"></span>
-      </div>
-      <a class="card-link" target="_blank" rel="noopener">Abrir</a>
+  <template id="card">
+    <article class="card">
+      <h3 class="t"></h3>
+      <p class="s"></p>
+      <div class="m"><span class="src"></span> · <span class="d"></span></div>
+      <a class="lnk" target="_blank" rel="noopener">Abrir</a>
     </article>
   </template>
 
