@@ -1,9 +1,9 @@
 name: Update News (hourly)
 
 on:
-  workflow_dispatch:          # botón manual "Run workflow"
+  workflow_dispatch:
   schedule:
-    - cron: "0 * * * *"       # cada hora
+    - cron: "0 * * * *"
 
 permissions:
   contents: write
@@ -24,17 +24,17 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Ensure folders + seed JSON
+      - name: Ensure folders + seed
         run: |
           mkdir -p site/data
           if [ ! -f site/data/latest.json ]; then
             printf '%s\n' '{"updated_at":"1970-01-01T00:00:00Z","version":"seed","cataluna":[],"espana":[],"rioja":[],"global":[]}' > site/data/latest.json
           fi
 
-      - name: Build latest.json (Python stdlib)
+      - name: Build latest.json (Python stdlib + backfill)
         shell: python
         run: |
-          import json, re, urllib.request, xml.etree.ElementTree as ET
+          import json, re, urllib.request, urllib.parse, xml.etree.ElementTree as ET
           from datetime import datetime, timezone
 
           FEEDS = {
@@ -63,27 +63,29 @@ jobs:
           def strip_html(s):
               return re.sub(r"<[^>]+>", "", s or "").strip()
 
-          def to_iso(s):
+          def safe_iso(s):
               try:
                   return datetime.fromisoformat(s.replace("Z","+00:00")).astimezone(timezone.utc).isoformat()
               except Exception:
                   return datetime.now(tz=timezone.utc).isoformat()
 
-          def parse_items(xml_bytes, source_host):
+          def parse(xml_bytes, host):
               items = []
               try:
                   root = ET.fromstring(xml_bytes)
               except ET.ParseError:
                   return items
+              # RSS
               for it in root.findall(".//item"):
                   items.append({
                       "title": (it.findtext("title") or "").strip(),
                       "url": (it.findtext("link") or "").strip(),
                       "summary": strip_html(it.findtext("description") or ""),
-                      "published_at": to_iso(it.findtext("pubDate") or ""),
+                      "published_at": safe_iso(it.findtext("pubDate") or ""),
                       "img": "",
-                      "source": source_host,
+                      "source": host,
                   })
+              # Atom
               for it in root.findall(".//{*}entry"):
                   link_el = it.find("{*}link")
                   link = link_el.get("href","") if link_el is not None else ""
@@ -91,74 +93,95 @@ jobs:
                       "title": (it.findtext("{*}title") or "").strip(),
                       "url": link.strip(),
                       "summary": strip_html(it.findtext("{*}summary") or it.findtext("{*}content") or ""),
-                      "published_at": to_iso(it.findtext("{*}updated") or ""),
+                      "published_at": safe_iso(it.findtext("{*}updated") or it.findtext("{*}published") or ""),
                       "img": "",
-                      "source": source_host,
+                      "source": host,
                   })
               return items
 
-          def norm_title(t):
+          def norm(t):
               t = (t or "").lower()
-              t = re.sub(r"[^\w\sáéíóúñüç]", " ", t)
-              t = re.sub(r"\s+", " ", t).strip()
+              t = re.sub(r"[^\w\\sáéíóúñüç]", " ", t)
+              t = re.sub(r"\\s+", " ", t).strip()
               return t[:80]
 
-          def intersect_top(group):
-              bag = {}
-              for it in group:
-                  k = norm_title(it["title"])
+          def intersect_top(lst):
+              bag={}
+              for it in lst:
+                  k = norm(it["title"])
                   if k not in bag:
-                      bag[k] = {"item": it, "cnt": 0, "latest": it["published_at"]}
+                      bag[k] = {"it": it, "cnt": 0, "latest": it["published_at"]}
                   bag[k]["cnt"] += 1
                   if it["published_at"] > bag[k]["latest"]:
                       bag[k]["latest"] = it["published_at"]
-              arr = sorted(bag.values(), key=lambda x: (x["cnt"], x["latest"]), reverse=True)
-              return [x["item"] for x in arr]
+              return [v["it"] for v in sorted(bag.values(), key=lambda x: (x["cnt"], x["latest"]), reverse=True)]
 
-          def collect():
-              out = {"updated_at": datetime.now(tz=timezone.utc).isoformat(), "version":"live",
-                     "cataluna":[], "espana":[], "rioja":[], "global":[]}
-              for cat, urls in FEEDS.items():
-                  all_items = []
-                  for u in urls:
-                      try:
-                          xml = fetch(u)
-                          items = parse_items(xml, u.split("/")[2])
-                          all_items.extend(items)
-                      except Exception as e:
-                          print("Feed error:", u, repr(e))
-                  ranked = intersect_top(all_items)
-                  used=set(); final=[]
-                  for it in ranked:
-                      k = norm_title(it["title"])
+          # Cargar items
+          union_all=[]; by_cat={}
+          for cat, urls in FEEDS.items():
+              all_items=[]
+              for u in urls:
+                  try:
+                      xml = fetch(u)
+                      items = parse(xml, urllib.parse.urlparse(u).hostname)
+                      all_items.extend(items); union_all.extend(items)
+                  except Exception as e:
+                      print("Feed error:", u, repr(e))
+              by_cat[cat]=all_items
+
+          # Componer respuesta
+          out = {"updated_at": datetime.now(tz=timezone.utc).isoformat(), "version":"live",
+                 "cataluna":[], "espana":[], "rioja":[], "global":[]}
+
+          def map_item(cat, it):
+              return {
+                "title": it["title"], "summary": it["summary"], "url": it["url"],
+                "source": it["source"], "published_at": it["published_at"], "img": it.get("img",""),
+                "location": "global" if cat=="global" else ("ES" if cat=="espana" else ("Cataluña" if cat=="cataluna" else "La Rioja")),
+                "category": "otros"
+              }
+
+          for cat, all_items in by_cat.items():
+              used=set(); final=[]
+              top = intersect_top(all_items)
+              for it in top:
+                  k = norm(it["title"])
+                  if k not in used:
+                      used.add(k); final.append(it)
+                  if len(final) >= MAX: break
+              if len(final) < MAX:
+                  all_items.sort(key=lambda x: x["published_at"], reverse=True)
+                  for it in all_items:
+                      k = norm(it["title"])
                       if k not in used:
                           used.add(k); final.append(it)
                       if len(final) >= MAX: break
-                  if len(final) < MAX:
-                      all_items.sort(key=lambda x:x["published_at"], reverse=True)
-                      for it in all_items:
-                          k = norm_title(it["title"])
-                          if k not in used:
-                              used.add(k); final.append(it)
-                          if len(final) >= MAX: break
-                  mapped=[]
-                  for it in final[:MAX]:
-                      mapped.append({
-                          "title": it["title"], "summary": it["summary"], "url": it["url"],
-                          "source": it["source"], "published_at": it["published_at"], "img": it.get("img",""),
-                          "location": "global" if cat=="global" else ("ES" if cat=="espana" else ("Cataluña" if cat=="cataluna" else "La Rioja")),
-                          "category": "otros"
-                      })
-                  out[cat]=mapped
-              return out
+              # Backfill desde global si sigue vacío
+              if not final and union_all:
+                  union_all.sort(key=lambda x: x["published_at"], reverse=True)
+                  for it in union_all:
+                      k = norm(it["title"])
+                      if k not in used:
+                          used.add(k); final.append(it)
+                      if len(final) >= MAX: break
+              out[cat] = [map_item(cat, it) for it in final[:MAX]]
 
-          out = collect()
+          print("Sizes:", {k: len(v) for k,v in out.items() if isinstance(v, list)})
+
           with open("site/data/latest.json","w",encoding="utf-8") as f:
-              json.dump(out,f,ensure_ascii=False,indent=2)
+              json.dump(out, f, ensure_ascii=False, indent=2)
           print("Wrote site/data/latest.json")
 
+      - name: Upload latest.json artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: latest-json
+          path: site/data/latest.json
+
       - name: Commit changes (if any)
+        shell: bash
         run: |
+          set -euo pipefail
           if [[ -n "$(git status --porcelain site/data/latest.json)" ]]; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
