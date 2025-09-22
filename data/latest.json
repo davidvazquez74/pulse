@@ -1,5 +1,5 @@
 {
-  "updated_at": "2025-09-22T05:12:26.822198+00:00",
+  "updated_at": "2025-09-22T06:19:02.881966+00:00",
   "version": "live",
   "cataluna": [
     {
@@ -35,6 +35,16 @@
   ],
   "espana": [
     {
+      "title": "El BBVA rectifica y eleva un 10% la puja sobre el Sabadell para intentar blindar el éxito de la opa",
+      "summary": "La entidad pasa a ofrecer una acción del nuevo grupo por cada 4,8376 acciones ordinarias del Sabadell",
+      "url": "https://elpais.com/economia/2025-09-22/el-bbva-rectifica-y-eleva-la-puja-sobre-el-sabadell-para-blindar-el-exito-de-la-oferta.html",
+      "source": "feeds.elpais.com",
+      "published_at": "2025-09-22T06:00:08+00:00",
+      "img": "",
+      "location": "ES",
+      "category": "otros"
+    },
+    {
       "title": "Switch, el nuevo juguete de LELO que multiplica el placer con su masajeador de varita 2 en 1",
       "summary": "Diseño perfeccionado con un doble vibrador para una estimulación interna y externa",
       "url": "https://elpais.com/escaparate/estilo-de-vida/2025-09-22/lelo-switch.html",
@@ -53,51 +63,51 @@
       "img": "",
       "location": "ES",
       "category": "otros"
-    },
-    {
-      "title": "Sin químicos ni riesgo para la piel: el gel antipiojos para niños que actúa con eficacia en solo 60 segundos",
-      "summary": "Se aplica con facilidad al ser un recipiente en espray y su aroma es agradable: la fórmula, testada y para niños a partir de doce meses, elimina piojos y liendres",
-      "url": "https://elpais.com/escaparate/estilo-de-vida/2025-09-22/gel-antipiojos-para-ninos-y-adultos-en-espray.html",
-      "source": "feeds.elpais.com",
-      "published_at": "2025-09-22T05:00:00+00:00",
-      "img": "",
-      "location": "ES",
-      "category": "otros"
     }
   ],
   "rioja": [
     {
-      "title": "La América conservadora despide a Charlie Kirk como a un héroe: «Lo veo como un mártir de Cristo»",
-      "summary": "Los 100.000 asistentes, con Trump a la cabeza, rinden tributo en el estadio de Glendale bajo estrictas medidas de seguridad al líder derechista asesinado",
-      "url": "https://www.larioja.com/internacional/eeuu/miles-personas-cola-horas-asistir-funeral-charlie-20250921195912-ntrc.html",
+      "title": "Encierros, conciertos, djs y juegos para celebrar las fiestas de San Miguel",
+      "summary": "El cohete se lanzará el viernes 26 de septiembre y el lunes 29 tendrá lugar la misa, procesión y el toro de San Miguel",
+      "url": "https://www.larioja.com/comarcas/encierros-conciertos-djs-juegos-celebrar-fiestas-san-20250922080600-nt.html",
       "source": "www.larioja.com",
-      "published_at": "2025-09-22T06:56:28+00:00",
+      "published_at": "2025-09-22T08:06:00+00:00",
       "img": "",
       "location": "La Rioja",
       "category": "otros"
     },
     {
-      "title": "Mikel Izal abandona sus 'miedos' y accede al 'paraíso' en San Mateo",
-      "summary": "Pese a la lluvia, el concierto central de las fiestas se celebra a ritmo de pop rock en la plaza del Ayuntamiento con buenas sensaciones desde el telonero Dollar Selmouni",
-      "url": "https://www.larioja.com/logrono/san-mateo/concierto-mikel-izal-logrono-san-mateo-20250922234727-nt.html",
+      "title": "PP y gobierno local vuelven a chocar por la obra de La Baronesa",
+      "summary": "Ante las críticas de los populares por llevar nueve meses cerrado, la alcaldesa defiende que la actuación va en plazo",
+      "url": "https://www.larioja.com/comarcas/arnedo/pp-gobierno-local-vuelven-chocar-obra-baronesa-20250922080519-nt.html",
       "source": "www.larioja.com",
-      "published_at": "2025-09-22T00:35:08+00:00",
+      "published_at": "2025-09-22T08:05:20+00:00",
       "img": "",
       "location": "La Rioja",
       "category": "otros"
     },
     {
-      "title": "(San) Mateo no impide el triunfo de la UD Logroñés",
-      "summary": "Los blanquirrojos siguen reñidos con el gol y se conforman con ganar por la mínima al Ebro con un gol de Manex Rezola",
-      "url": "https://www.larioja.com/deportes/futbol/segunda-rfef/san-mateo-impide-triunfo-logrones-ante-ebro-20250921131130-nt.html",
+      "title": "Retiran los chopos del paseo Luis Fernández por la reurbanización de la calle",
+      "summary": "El proyecto de mejora del polideportivo avanza por su segundo mes, con 884.541 euros de inversión",
+      "url": "https://www.larioja.com/comarcas/alfaro/retiran-chopos-paseo-luis-fernandez-reurbanizacion-calle-20250922080501-nt.html",
       "source": "www.larioja.com",
-      "published_at": "2025-09-21T23:58:48+00:00",
+      "published_at": "2025-09-22T08:05:02+00:00",
       "img": "",
       "location": "La Rioja",
       "category": "otros"
     }
   ],
   "global": [
+    {
+      "title": "Watch: Prayer, tears and a Trump-Musk handshake at Kirk memorial",
+      "summary": "The five-hour service saw top officials from the Trump administration pay tribute to the conservative activist.",
+      "url": "https://www.bbc.com/news/videos/c1kwwxgmn21o?at_medium=RSS&at_campaign=rss",
+      "source": "feeds.bbci.co.uk",
+      "published_at": "2025-09-21T23:40:46+00:00",
+      "img": "",
+      "location": "global",
+      "category": "otros"
+    },
     {
       "title": "Watch: Philippines anti-corruption protests turn violent",
       "summary": "Thousands of demonstrators took to the streets of the capital Manila, with some clashing with police.",
@@ -114,16 +124,6 @@
       "url": "https://www.bbc.com/news/videos/cvg998q0557o?at_medium=RSS&at_campaign=rss",
       "source": "feeds.bbci.co.uk",
       "published_at": "2025-09-21T04:17:42+00:00",
-      "img": "",
-      "location": "global",
-      "category": "otros"
-    },
-    {
-      "title": "Drones vs. Lasers",
-      "summary": "We explore the math problem facing NATO — and one possible solution.",
-      "url": "https://www.nytimes.com/2025/09/19/briefing/nato-drones-russia.html",
-      "source": "rss.nytimes.com",
-      "published_at": "2025-09-19T14:10:06+00:00",
       "img": "",
       "location": "global",
       "category": "otros"
