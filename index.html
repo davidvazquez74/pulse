@@ -3,46 +3,44 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Pulse — titulares con impacto</title>
-  <meta name="theme-color" content="#0a84ff" />
+  <title>Pulse — Titulares con impacto</title>
+  <link rel="stylesheet" href="styles.css" />
   <link rel="manifest" href="manifest.json" />
-  <link rel="icon" href="assets/icons/icon-192.png" />
-  <link href="styles.css" rel="stylesheet" />
 </head>
-<body>
-  <header class="header">
+<body class="light">
+  <header class="app-header" role="banner">
     <div class="logo">Pulse</div>
     <div class="actions">
-      <button id="refreshBtn" class="icon-btn" aria-label="Actualizar">⟳</button>
+      <button id="refreshBtn" aria-label="Refrescar">⟳</button>
+      <button id="settingsBtn" aria-label="Ajustes">⚙</button>
     </div>
   </header>
 
-  <nav id="chipBar" class="chips" aria-label="Categorías"></nav>
+  <!-- Weather widget -->
+  <section id="weather" class="wx-bar" aria-label="Tiempo semanal">
+    <div class="wx-head">
+      <span class="wx-title">Esta semana en <strong id="wx-city">Detectando…</strong></span>
+      <button id="wx-change" class="wx-link" aria-label="Cambiar ciudad" type="button">Cambiar</button>
+    </div>
+    <div id="wx-days" class="wx-days" role="list"></div>
+  </section>
 
-  <main id="news" class="news" aria-live="polite">
-    <div class="skeleton-list" id="skeleton"><div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div></div>
-  </main>
+  <!-- Chips -->
+  <nav class="chips" aria-label="Categorías">
+    <button class="chip chip--active" data-cat="espana">España</button>
+    <button class="chip" data-cat="cataluna">Cataluña</button>
+    <button class="chip" data-cat="rioja">La Rioja</button>
+    <button class="chip" data-cat="global">Global</button>
+    <button class="chip chip--add" id="manageCats" aria-label="Gestionar categorías">＋</button>
+  </nav>
 
-  <template id="cardTemplate">
-    <article class="card" tabindex="0">
-      <div class="card-body">
-        <h3 class="card-title"></h3>
-        <p class="card-summary"></p>
-        <div class="card-meta"><span class="source"></span> • <time class="timeago"></time></div>
-        <div class="impact collapsed">
-          <div class="impact-row"><strong>Adulto:</strong> <span class="adult-impact"></span></div>
-          <div class="impact-row"><strong>Teen:</strong> <span class="teen-impact"></span></div>
-          <div class="impact-meta"><span class="tag"></span><span class="sev"></span><span class="horizon"></span><span class="action"></span></div>
-        </div>
-        <div class="card-actions">
-          <a class="btn" target="_blank" rel="noopener">Leer</a>
-          <button class="btn ghost toggle-impact" aria-expanded="false">Ver impacto</button>
-        </div>
-      </div>
-    </article>
-  </template>
+  <main id="news" class="news" aria-live="polite"></main>
 
-  <script src="impactEngine.js"></script>
-  <script src="main.js"></script>
+  <footer class="app-footer">
+    <small>© Pulse</small>
+  </footer>
+
+  <script src="js/main.js" defer></script>
+  <script src="js/weather.js" defer></script>
 </body>
 </html>
