@@ -1,4 +1,4 @@
-name: Update News (hourly + force-commit)
+name: Update News (hourly + impact + geofilter + force-commit)
 
 on:
   workflow_dispatch:
@@ -31,7 +31,7 @@ jobs:
           fi
           ls -la data
 
-      - name: Build latest.json (Python stdlib + backfill)
+      - name: Build latest.json (impact engine + geo-filter + backfill)
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -41,6 +41,7 @@ jobs:
           FEEDS = {
             "cataluna": [
               "https://www.elperiodico.com/es/rss/catalunya/rss.xml",
+              "https://www.lavanguardia.com/mvc/feed/rss/catalunya",
             ],
             "espana": [
               "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/portada",
@@ -55,6 +56,7 @@ jobs:
           }
           MAX = 3
 
+          # ---- helpers
           def fetch(url):
               req = urllib.request.Request(url, headers={"User-Agent":"PulseBot/1.0"})
               with urllib.request.urlopen(req, timeout=25) as r:
@@ -99,75 +101,201 @@ jobs:
                   })
               return items
 
-          def norm(t):
-              t = (t or "").lower()
-              t = re.sub(r"[^\w\sáéíóúñüç]", " ", t)
-              t = re.sub(r"\s+", " ", t).strip()
-              return t[:80]
+          # ---- Impact Engine (rules)
+          KW = {
+            r"(eur[ií]bor|bce|hipoteca|inflaci[oó]n)":       ("finanzas",2,"este mes","vigilar"),
+            r"(gasolina|di[eé]sel|petr[oó]leo|electricidad|gas)": ("energía",2,"esta semana","vigilar"),
+            r"(huelga|paro).*(tren|metro|bus|vuelo)":          ("movilidad",2,"hoy","planificar"),
+            r"(alquiler|vivienda|inmobiliaria)":               ("vivienda",2,"este mes","vigilar"),
+            r"(impuestos|iva|subsidio|bono)":                  ("impuestos",2,"este mes","vigilar"),
+            r"(dana|temporal|lluvias|ola de calor|inundaci[oó]n)": ("clima",2,"hoy","planificar"),
+            r"(cad[aá]ver|muertos?|asesinato|violencia grave)": ("seguridad",1,"hoy","vigilar"),
+            r"(concierto|festival|partido|marat[oó]n|celebraci[oó]n)": ("eventos",2,"esta semana","planificar"),
+            r"(champions|liga|mundial|copa|bar[cç]a|real madrid)":    ("deporte",2,"hoy","planificar"),
+            r"(covid|vacuna|brote|epidemia|hospital)":         ("salud",2,"esta semana","vigilar"),
+            r"\\bIA\\b|ciberseguridad|hackeo":                 ("tecnología",1,"esta semana","FYI"),
+            r"empresa|fusi[oó]n|resultados|cotizaci[oó]n":     ("negocios",1,"este mes","FYI"),
+            r"juicio|sentencia|tribunal|fiscal":               ("justicia",1,"esta semana","FYI"),
+            r"incendio|contaminaci[oó]n|vertido|desastre ambiental": ("medioambiente",2,"hoy","vigilar"),
+          }
+          TAGS = {"finanzas","economia","negocios","energía","movilidad","vivienda","empleo","impuestos","clima",
+                  "salud","educacion","eventos","deporte","cultura","seguridad","justicia","internacional","tecnología",
+                  "medioambiente","transporte","salud_publica","otros"}
+          SENSITIVE = re.compile(r"(cad[aá]ver|muertos?|asesinato|violencia|epidemia|brote|covid)", re.I)
 
-          def intersect_top(lst):
-              bag={}
-              for it in lst:
-                  k = norm(it["title"])
-                  if k not in bag:
-                      bag[k] = {"it": it, "cnt": 0, "latest": it["published_at"]}
-                  bag[k]["cnt"] += 1
-                  if it["published_at"] > bag[k]["latest"]:
-                      bag[k]["latest"] = it["published_at"]
-              return [v["it"] for v in sorted(bag.values(), key=lambda x: (x["cnt"], x["latest"]), reverse=True)]
+          def clamp_words(s, maxw):
+              w = re.split(r"\\s+", s.strip())
+              return " ".join(w[:maxw])
 
-          union_all=[]; by_cat={}
+          def no_emoji(s): return re.sub(r"[\\U0001F300-\\U0001FAFF\\u2600-\\u27BF]", "", s)
+
+          def impact(it):
+              t = f"{it['title']} {it['summary']}".lower()
+              tag, sev, horizon, action = ("otros", 0, "sin plazo", "FYI")
+              for rx, conf in KW.items():
+                  if re.search(rx, t):
+                      tag, sev, horizon, action = conf; break
+              sensitive = SENSITIVE.search(t) is not None
+
+              adult = {
+                "finanzas":"Revisa tu hipoteca y calcula cambios de cuota este mes.",
+                "energía":"Compara precios y ajusta consumo esta semana para reducir factura.",
+                "movilidad":"Planifica rutas y horarios alternativos hoy para evitar retrasos.",
+                "vivienda":"Valora renegociar alquiler o retrasar decisiones este mes.",
+                "impuestos":"Comprueba deducciones y plazos fiscales; evita recargos.",
+                "clima":"Evita desplazamientos innecesarios y protege exteriores hoy.",
+                "seguridad":"Mantén prudencia y sigue indicaciones oficiales en tu zona.",
+                "eventos":"Si asistes, prevé transporte y horarios con antelación.",
+                "deporte":"Prevé cortes y afluencias; usa transporte público.",
+                "salud":"Revisa pautas sanitarias locales y evita aglomeraciones.",
+                "tecnología":"Actualiza sistemas y activa verificación en dos pasos.",
+                "negocios":"Monitorea costes/ingresos y ajusta planes.",
+                "justicia":"Toma nota; posibles efectos de cumplimiento.",
+                "medioambiente":"Evita zonas afectadas; sigue avisos.",
+                "otros":"Sin efecto directo en tu día a día."
+              }.get(tag,"Sin efecto directo en tu día a día.")
+              adult = clamp_words(no_emoji(adult), 22)
+
+              if sensitive:
+                  teen = "Info importante. Sigue indicaciones y no difundas rumores."
+              else:
+                  teen = {
+                    "movilidad":"Organízate: puede haber lío en calles/metro. 🚇",
+                    "eventos":"Llega con tiempo: colas y tráfico. 🎟️",
+                    "deporte":"Habrá mucha gente; metro mejor. ⚽",
+                    "energía":"Ojo a precios: controla gasto. 💡",
+                    "finanzas":"Atento a tu cuota: puede cambiar. 💸",
+                    "clima":"Prepárate: clima duro, cuídate.",
+                    "tecnología":"Actualiza apps y pon 2FA. 🔐",
+                    "salud":"Cuídate y sigue consejos.",
+                  }.get(tag, "Tranqui, solo para estar al día.")
+              teen = clamp_words(teen, 18)
+              em = re.findall(r"[\\U0001F300-\\U0001FAFF\\u2600-\\u27BF]", teen)
+              if len(em) > 1:
+                  teen = re.sub(r"([\\U0001F300-\\U0001FAFF\\u2600-\\u27BF]).*$", r"\\1", teen)
+
+              conf = 0.7 if tag!="otros" else 0.5
+              if conf < 0.5:
+                  adult, teen, sev, action = "Sin efecto directo en tu día a día.", "Sin efecto directo.", 0, "FYI"
+
+              def dedupe(src, ttl):
+                  ttl5 = " ".join(ttl.split()[:6]).lower()
+                  return src if ttl5 not in src.lower() else "Resumen breve relevante para ti."
+              adult = dedupe(adult, it["title"]); teen = dedupe(teen, it["title"])
+
+              if tag not in TAGS: tag = "otros"
+              rationale = f"Reglas por keywords; sensible={'sí' if sensitive else 'no'}; fuente={it['source']}"
+
+              return {
+                 "adult_impact": adult,
+                 "teen_impact": teen,
+                 "tag": tag,
+                 "severity": sev,
+                 "horizon": horizon,
+                 "action": action,
+                 "rationale": rationale,
+                 "confidence": conf,
+              }
+
+          # ---- Geo filter
+          CITIES_CAT = {"barcelona","bcn","girona","gerona","lleida","lerida","tarragona","sabadell","terrassa","badalona","hospitalet","l'hospitalet","mataró","mataro","reus","manresa","figueres","granollers","molins de rei","sitges","sants","eixample","gràcia","gracia"}
+          CITIES_RIOJA = {"logroño","logrono","haro","calahorra","arnedo","najera","nàjera","albelda de iregua","albelda","la rioja","rioja"}
+          FOREIGN_HINTS = {"estados unidos","eeuu","ee.uu.","francia","alemania","reino unido","uk","china","rusia","ucrania","italia","portugal","méxico","mexico","brasil","japón","japon"}
+          WL_CAT = {"elperiodico.com","lavanguardia.com","ccma.cat","ara.cat","naciodigital.cat","diaridebarcelona.cat","beteve.cat"}
+          WL_RIOJA = {"larioja.com","rioja2.com","nuevecuatrouno.com","larioja.org"}
+          WL_ES  = {"elpais.com","rtve.es","elmundo.es","abc.es","eldiario.es","elespanol.com"}
+
+          def score_region(text, host, region):
+              t=text.lower(); s=0
+              if region=="cataluna":
+                  if any(w in t for w in CITIES_CAT): s+=3
+                  if host in WL_CAT: s+=2
+              elif region=="rioja":
+                  if any(w in t for w in CITIES_RIOJA): s+=3
+                  if host in WL_RIOJA: s+=2
+              elif region=="espana":
+                  if "españa" in t or "espana" in t: s+=2
+                  if host in WL_ES: s+=2
+              if s<2 and any(w in t for w in FOREIGN_HINTS): s-=2
+              return s
+
+          def best_region(item):
+              text=f"{item['title']} {item['summary']}"; host=item["source"]
+              scores={"cataluna":score_region(text,host,"cataluna"),
+                      "rioja":score_region(text,host,"rioja"),
+                      "espana":score_region(text,host,"espana"),
+                      "global":0}
+              region, sc = max(scores.items(), key=lambda kv: kv[1])
+              return region if sc>=2 else "global"
+
+          # ---- collect, bucketize, rank, backfill
+          union_all=[]; raw_by_cat={}
           for cat, urls in FEEDS.items():
               all_items=[]
               for u in urls:
                   try:
-                      xml = fetch(u)
-                      items = parse(xml, urllib.parse.urlparse(u).hostname)
+                      xml=fetch(u); host=urllib.parse.urlparse(u).hostname
+                      items=parse(xml,host)
                       all_items.extend(items); union_all.extend(items)
                       print(f"OK {cat} <- {u} : +{len(items)}")
                   except Exception as e:
                       print("Feed error:", u, repr(e))
-              by_cat[cat]=all_items
+              raw_by_cat[cat]=all_items
 
-          out = {"updated_at": datetime.now(tz=timezone.utc).isoformat(), "version":"live",
-                 "cataluna":[], "espana":[], "rioja":[], "global":[]}
+          buckets={"cataluna":[], "espana":[], "rioja":[], "global":[]}
+          def norm_title(t):
+              t=(t or "").lower(); t=re.sub(r"[^\\w\\sáéíóúñüç]"," ",t); t=re.sub(r"\\s+"," ",t).strip(); return t[:120]
+          seen=set()
+          for it in union_all:
+              key=(norm_title(it["title"]), it["url"])
+              if key in seen: continue
+              seen.add(key)
+              buckets[best_region(it)].append(it)
+
+          def intersect_top(lst):
+              bag={}
+              for it in lst:
+                  k=norm_title(it["title"])
+                  if k not in bag: bag[k]={"it":it,"cnt":0,"latest":it["published_at"]}
+                  bag[k]["cnt"]+=1
+                  if it["published_at"]>bag[k]["latest"]: bag[k]["latest"]=it["published_at"]
+              return [v["it"] for v in sorted(bag.values(), key=lambda x:(x["cnt"],x["latest"]), reverse=True)]
+
+          ranked={cat:intersect_top(lst) for cat,lst in buckets.items()}
+          def backfill(cat):
+              need=MAX-len(ranked[cat])
+              if need<=0: return
+              more=sorted(buckets[cat], key=lambda x:x["published_at"], reverse=True)
+              used={id(x) for x in ranked[cat]}
+              for it in more:
+                  if id(it) in used: continue
+                  ranked[cat].append(it)
+                  if len(ranked[cat])>=MAX: break
+          for cat in ["cataluna","rioja","espana","global"]:
+              backfill(cat)
 
           def map_item(cat, it):
+              meta=impact(it)
               return {
                 "title": it["title"], "summary": it["summary"], "url": it["url"],
                 "source": it["source"], "published_at": it["published_at"], "img": it.get("img",""),
                 "location": "global" if cat=="global" else ("ES" if cat=="espana" else ("Cataluña" if cat=="cataluna" else "La Rioja")),
-                "category": "otros"
+                "category": meta["tag"],
+                **meta
               }
 
-          for cat, all_items in by_cat.items():
-              used=set(); final=[]
-              top = intersect_top(all_items)
-              for it in top:
-                  k = norm(it["title"])
-                  if k not in used:
-                      used.add(k); final.append(it)
-                  if len(final) >= MAX: break
-              if len(final) < MAX:
-                  all_items.sort(key=lambda x: x["published_at"], reverse=True)
-                  for it in all_items:
-                      k = norm(it["title"])
-                      if k not in used:
-                          used.add(k); final.append(it)
-                      if len(final) >= MAX: break
-              if not final and union_all:
-                  union_all.sort(key=lambda x: x["published_at"], reverse=True)
-                  for it in union_all:
-                      k = norm(it["title"])
-                      if k not in used:
-                          used.add(k); final.append(it)
-                      if len(final) >= MAX: break
-              out[cat] = [map_item(cat, it) for it in final[:MAX]]
+          out={
+            "updated_at": datetime.now(tz=timezone.utc).isoformat(),
+            "version":"live",
+            "cataluna":[map_item("cataluna",it) for it in ranked["cataluna"][:MAX]],
+            "espana":[map_item("espana",it) for it in ranked["espana"][:MAX]],
+            "rioja":[map_item("rioja",it) for it in ranked["rioja"][:MAX]],
+            "global":[map_item("global",it) for it in ranked["global"][:MAX]],
+          }
 
-          print("Sizes:", {k: len(v) for k,v in out.items() if isinstance(v, list)})
-
+          print("Sizes(filtered+impacts):", {k: len(v) for k,v in out.items() if isinstance(v, list)})
           with open("data/latest.json","w",encoding="utf-8") as f:
-              json.dump(out, f, ensure_ascii=False, indent=2)
+              json.dump(out,f,ensure_ascii=False,indent=2)
           print("Wrote data/latest.json")
           PY
 
