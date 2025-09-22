@@ -27,7 +27,7 @@
 :root[data-theme="dark"]{ --bg:#0d0f12; --card:#171a1f; --text:#f2f3f4; --muted:#9aa3af; --chip-bg:#1f242b; --chip-text:#e5e7eb; color-scheme: dark; }
 
 html,body{background:var(--bg);color:var(--text);margin:0;font:400 16px/1.5 Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;transition:background .2s ease,color .2s ease;}
-.app-header{display:flex;align-items:center;justify-content:space-between;padding:16px 16px 8px;position:sticky;top:0;background:var(--bg);backdrop-filter:saturate(140%) blur(8px);z-index:10;border-bottom:1px solid rgba(0,0,0,.05);}
+.app-header{display:flex;align-items:center;justify-content:space-between;padding:16px 16px 8px;position:sticky;top:0;background:var(--bg);backdrop-filter:saturate(140%) blur(8px);z-index:10;border-bottom:1px solid rgba(0,0,0,.05);box-shadow:0 1px 0 rgba(0,0,0,.05);}
 .brand .logo{font-weight:700;font-size:20px;letter-spacing:.3px;}
 .header-actions{display:flex;gap:8px;}
 .chip{appearance:none;border:0;cursor:pointer;padding:8px 12px;border-radius:999px;background:var(--chip-bg);color:var(--chip-text);font:500 14px/1 Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;transition:transform .12s ease, background .15s ease, color .15s ease;}
@@ -36,12 +36,13 @@ html,body{background:var(--bg);color:var(--text);margin:0;font:400 16px/1.5 Inte
 .chip:active{transform:scale(.98);}
 .mode-icon{margin-right:6px;}
 
-.weather-strip{margin:8px 12px;padding:10px 12px;border-radius:16px;background:var(--card);box-shadow:var(--shadow);}
+.weather-strip{margin:8px 12px;padding:10px 12px;border-radius:16px;background:var(--card);box-shadow:var(--shadow);min-height:84px;}
 .w-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;color:var(--muted);font-size:13px;}
 .w-days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
 .w-day{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 4px;border-radius:12px;background:rgba(0,0,0,.03);}
 .w-day .d{font-size:12px;color:var(--muted);}
 .w-day .t{font-weight:600;font-size:14px;}
+.w-day[aria-busy="true"]{opacity:.5;}
 
 .cat-chips{padding:8px 12px;}
 .chips-scroll{display:flex;gap:8px;overflow:auto;padding-bottom:4px;}
@@ -59,3 +60,6 @@ html,body{background:var(--bg);color:var(--text);margin:0;font:400 16px/1.5 Inte
 .badge{font-size:11px;padding:4px 8px;border-radius:999px;background:rgba(0,0,0,.06);margin-right:6px;}
 .card-link{display:inline-block;margin-top:4px;color:var(--accent);font-weight:600;text-decoration:none;}
 .card-link:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:8px;}
+
+/* Estado vacío con acción */
+.content .chip#retry { margin-top: 6px; }

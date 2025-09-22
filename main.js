@@ -56,9 +56,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   buildCategoryChips();
   await loadData();
   renderAll();
-  if (typeof window.initPulseWeather === 'function') {
-    window.initPulseWeather();
-  }
+  if (typeof window.initPulseWeather === 'function') window.initPulseWeather();
 });
 
 /* ===== Carga desde site/data/latest.json ===== */
@@ -69,7 +67,6 @@ async function loadData(){
     if (!res.ok) throw new Error('HTTP '+res.status);
     const raw = await res.json();
     STATE.data = normalizeDataKeys(raw);
-    return;
   }catch(e){
     console.warn('[Pulse] No se pudo cargar', url, e);
     STATE.data = {updated_at:new Date().toISOString(),version:'empty',cataluna:[],espana:[],rioja:[],global:[]};
@@ -127,9 +124,16 @@ function renderSections(){
   list.className = 'cards';
 
   if (items.length === 0){
-    const empty = document.createElement('p');
+    const empty = document.createElement('div');
     empty.style.color = 'var(--muted)';
-    empty.textContent = 'Sin noticias (aún). Vuelve en unos minutos.';
+    empty.innerHTML = `
+      <p style="margin:8px 0">Sin noticias (aún). Puede que el archivo de datos esté generándose.</p>
+      <button id="retry" class="chip" type="button" aria-label="Reintentar">Reintentar</button>
+    `;
+    empty.querySelector('#retry').addEventListener('click', async ()=>{
+      await loadData();
+      renderAll();
+    });
     list.appendChild(empty);
   } else {
     items.forEach(it => list.appendChild(renderCard(it)));

@@ -1,14 +1,59 @@
-(function () {
-  const elDays=document.getElementById('wx-days');
-  const elCity=document.getElementById('wx-city');
-  const btnChange=document.getElementById('wx-change');
-  if(!elDays||!elCity) return;
-  const DEFAULT={name:'Molins de Rei',lat:41.4167,lon:2.0167};
-  const ICON=(c)=>({0:'☀️',1:'🌤',2:'⛅️',3:'☁️',45:'🌫',48:'🌫',51:'🌦',53:'🌦',55:'🌦',61:'🌧',63:'🌧',65:'🌧',66:'🌧',67:'🌧',71:'🌨',73:'🌨',75:'❄️',80:'🌦',81:'🌧',82:'🌧',85:'🌨',86:'🌨',95:'⛈',96:'⛈',99:'⛈'}[c]||'⛅️');
-  const fmt=(iso)=>new Date(iso).toLocaleDateString('es-ES',{weekday:'short'});
-  function draw(days){elDays.innerHTML='';(days||[]).slice(0,6).forEach(d=>{const c=document.createElement('div');c.className='wx-col';c.innerHTML=`<div class="wx-day">${fmt(d.date)}</div><div class="wx-ico">${ICON(d.code)}</div><div class="wx-tmp">${Math.round(d.tmax)}° / ${Math.round(d.tmin)}°</div>`;elDays.appendChild(c);});}
-  async function weekly(lat,lon){const u=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto&lang=es`;const r=await fetch(u,{cache:'no-store'});const j=await r.json();if(!j?.daily?.time) throw new Error('wx');return j.daily.time.map((t,i)=>({date:t,code:j.daily.weathercode[i],tmax:j.daily.temperature_2m_max[i],tmin:j.daily.temperature_2m_min[i]}));}
-  async function useCity(lat,lon,name){elCity.textContent=name;try{draw(await weekly(lat,lon));}catch(e){const today=new Date();const fake=Array.from({length:6}).map((_,k)=>{const d=new Date(today);d.setDate(today.getDate()+k);return{date:d.toISOString().slice(0,10),code:2,tmax:24,tmin:16};});draw(fake);}}
-  (async()=>{try{const s=JSON.parse(localStorage.getItem('pulse_city_manual')||'null');if(s) return useCity(s.lat,s.lon,s.name);}catch{} await useCity(DEFAULT.lat,DEFAULT.lon,DEFAULT.name);})();
-  btnChange?.addEventListener('click',async()=>{const name=prompt('Ciudad (ej. Barcelona, Logroño):');if(!name) return;try{const r=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&accept-language=es&q=${encodeURIComponent(name)}`);const [hit]=await r.json();if(!hit) return alert('No encontrada');const lat=parseFloat(hit.lat),lon=parseFloat(hit.lon),pretty=(hit.display_name||name).split(',')[0];localStorage.setItem('pulse_city_manual',JSON.stringify({name:pretty,lat,lon}));await useCity(lat,lon,pretty);}catch{alert('Error buscando la ciudad');}});
-})();
+
+// Widget semanal (Molins de Rei) usando Open-Meteo (sin API key).
+window.initPulseWeather = async function () {
+  const elDays = document.getElementById('weather-days');
+  const elUpd  = document.getElementById('weather-updated');
+  if (!elDays) return;
+
+  const lat = 41.416, lon = 2.015; // Molins de Rei aprox
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=Europe%2FMadrid&lang=es`;
+
+  elDays.innerHTML = Array.from({length:7}).map(()=>(
+    `<div class="w-day" aria-busy="true">
+       <div class="d">—</div>
+       <div class="i">⛅</div>
+       <div class="t">··</div>
+     </div>`
+  )).join('');
+
+  try {
+    const res = await fetch(url, { cache: 'no-store' });
+    const data = await res.json();
+    const days = (data.daily?.time || []).slice(0,7);
+
+    const WMAP = {
+      0:'Despejado', 1:'Claro', 2:'Nubes', 3:'Nubes',
+      45:'Niebla', 48:'Niebla', 51:'Llovizna', 53:'Llovizna', 55:'Llovizna',
+      61:'Lluvia', 63:'Lluvia', 65:'Lluvia', 66:'Aguanieve', 67:'Aguanieve',
+      71:'Nieve', 73:'Nieve', 75:'Nieve', 77:'Nieve',
+      80:'Chubascos', 81:'Chubascos', 82:'Chubascos',
+      95:'Tormenta', 96:'Tormenta', 99:'Tormenta'
+    };
+    const I = (code) => {
+      if ([0,1].includes(code)) return '☀️';
+      if ([2,3].includes(code)) return '⛅';
+      if ([51,53,55,61,63,65,80,81,82].includes(code)) return '🌧️';
+      if ([71,73,75,77].includes(code)) return '❄️';
+      if ([95,96,99].includes(code)) return '⛈️';
+      if ([45,48].includes(code)) return '🌫️';
+      return '⛅';
+    };
+    const fmt = (iso) => new Date(iso).toLocaleDateString('es-ES', { weekday: 'short' });
+    const max = data.daily.temperature_2m_max;
+    const min = data.daily.temperature_2m_min;
+    const code = data.daily.weathercode;
+
+    elDays.innerHTML = days.map((d,i)=>`
+      <div class="w-day" aria-label="${WMAP[code[i]]||'Tiempo'}">
+        <div class="d">${fmt(d)}</div>
+        <div class="i" aria-hidden="true">${I(code[i])}</div>
+        <div class="t">${Math.round(min[i])}° / ${Math.round(max[i])}°</div>
+      </div>
+    `).join('');
+
+    if (elUpd) elUpd.textContent = new Date().toLocaleString('es-ES', { hour:'2-digit', minute:'2-digit' });
+  } catch (e) {
+    elDays.innerHTML = `<div class="w-day">—</div>`.repeat(7);
+    if (elUpd) elUpd.textContent = 'sin conexión';
+  }
+};
