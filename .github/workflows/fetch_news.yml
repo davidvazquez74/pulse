@@ -63,8 +63,7 @@ jobs:
             ],
           }
 
-          # Mostrar hasta N noticias por sección (acuerdo: 6)
-          MAX = 6
+          MAX = 6  # mostrar hasta 6 noticias por sección
 
           # ---------------- utils ----------------
           CTRL_RX = re.compile(r'[\x00-\x08\x0b\x0c\x0e-\x1f]')
@@ -132,14 +131,14 @@ jobs:
               return items
 
           # ---------------- impact engine ----------------
-          # + añadimos clima extremo (huracán/tifón/DANA/inundación)
           KW = {
             r"(eur[ií]bor|bce|hipoteca|inflaci[oó]n)": ("finanzas",2,"este mes","vigilar"),
             r"(gasolina|di[eé]sel|petr[oó]leo|electricidad|gas)": ("energía",2,"esta semana","vigilar"),
             r"(huelga|paro).*(tren|metro|bus|vuelo)": ("movilidad",2,"hoy","planificar"),
             r"(alquiler|vivienda|inmobiliaria)": ("vivienda",2,"este mes","vigilar"),
             r"(impuestos|iva|subsidio|bono)": ("impuestos",2,"este mes","vigilar"),
-            r"(meteocat|temperaturas?|ola de calor|maximas|minimas|fr[ií]o|tormenta|hurac[aá]n|tif[oó]n|dana|inundaci[oó]n)": ("clima",2,"hoy","planificar"),
+            r"(meteocat|temperaturas?|ola de calor|maximas|minimas|fr[ií]o|tormenta|hurac[aá]n|tif[oó]n|dana|inundaci[oó]n)":
+              ("clima",2,"hoy","planificar"),
             r"(boletaire|setas?|micolog[ií]a|bosque|medio natural)": ("medioambiente",2,"esta semana","vigilar"),
             r"(cad[aá]ver|muert[oa]s?|asesinato|violencia|derrumb|colaps)": ("seguridad",1,"hoy","vigilar"),
             r"(concierto|festival|partido|marat[oó]n|celebraci[oó]n)": ("eventos",2,"esta semana","planificar"),
@@ -149,7 +148,8 @@ jobs:
             r"empresa|fusi[oó]n|resultados|cotizaci[oó]n": ("negocios",1,"este mes","FYI"),
             r"(juicio|sentencia|tribunal|fiscal|audiencia nacional|ts|tc)": ("justicia",1,"esta semana","FYI"),
             r"(incendio|contaminaci[oó]n|vertido|desastre ambiental)": ("medioambiente",2,"hoy","vigilar"),
-            r"(palestina|onu|oriente pr[oó]ximo|macron|israel|gaza|cisjordania|ham[aá]s|reconocimiento del estado|otan|ue|bruselas)": ("internacional",2,"esta semana","FYI"),
+            r"(palestina|onu|oriente pr[oó]ximo|israel|gaza|cisjordania|ham[aá]s|reconocimiento del estado|otan|ue|bruselas)":
+              ("internacional",2,"esta semana","FYI"),
           }
           SENSITIVE = re.compile(r"(ejecuci[oó]n p[uú]blica|reh[eé]n|tiroteo|atentado|cad[aá]ver|muert[oa]s?|guerra|conflicto)", re.I)
           TAGS = {"finanzas","economia","negocios","energía","movilidad","vivienda","empleo","impuestos","clima",
@@ -166,11 +166,9 @@ jobs:
               if not s: return ""
               t = re.sub(r"\\\d+", "", s)  # quita \1, \2…
               t = re.sub(r"\s+"," ",t).strip()
-              # emojis: teen máx 1, adulto 0
               if is_teen:
                   em = EMOJI_RX.findall(t)
                   if len(em) > 1:
-                      # deja solo el primero
                       first = em[0]
                       t = EMOJI_RX.sub("", t)
                       t = (t + " " + first).strip()
@@ -222,7 +220,6 @@ jobs:
                   teen = teen_map.get(tag,"Tranqui, solo para estar al día.")
               teen = clip_words(teen, 18)
 
-              # sanitiza
               adult = sanitize_impact(adult, is_teen=False)
               teen  = sanitize_impact(teen,  is_teen=True)
 
@@ -238,7 +235,7 @@ jobs:
               if tag not in TAGS: tag="otros"
               return {"adult_impact":adult,"teen_impact":teen,"tag":tag,"severity":sev,"horizon":hz,"action":act,"rationale":f"Reglas por keywords; sensible={'sí' if sensitive else 'no'}; fuente={it['source']}", "confidence":conf}
 
-          # ---------------- semantic filter (con tus reglas) ----------------
+          # ---------------- semantic filter ----------------
           PRIORITY = ["rioja","cataluna","espana","global"]
 
           SOURCE_BOOST = {
@@ -336,7 +333,7 @@ jobs:
               if max_score < 2:
                   return "global"
               winners = [r for r,v in scores.items() if v==max_score]
-              for pr in PRIORITY:
+              for pr in ["rioja","cataluna","espana","global"]:
                   if pr in winners:
                       return pr
               return "global"
@@ -434,6 +431,13 @@ jobs:
                   for it in out[cat]:
                       for k in ['title','summary','adult_impact','teen_impact','source']:
                           if k in it: it[k] = clean_txt(it[k])
+
+          # Logs útiles
+          print("Counts:",
+                "CAT", len(out["cataluna"]),
+                "ES", len(out["espana"]),
+                "RIO", len(out["rioja"]),
+                "GLO", len(out["global"]))
 
           with open('data/latest.json','w',encoding='utf-8') as f:
               json.dump(out,f,ensure_ascii=False,indent=2)
