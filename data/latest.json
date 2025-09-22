@@ -1,132 +1,132 @@
 {
-  "updated_at": "2025-09-22T13:30:00Z",
-  "version": "demo",
+  "updated_at": "2025-09-22T12:28:49Z",
+  "version": "live",
   "cataluna": [
     {
-      "title": "El Parlament aprueba nueva medida educativa",
-      "summary": "La norma introduce cambios en evaluación y recursos digitales.",
-      "url": "https://example.com/cataluna-edu",
-      "source": "example.com",
-      "published_at": "2025-09-22T10:30:00Z",
+      "title": "El Meteocat pone fecha al fin de la ola de calor que abrasa Catalunya",
+      "summary": "En plena canícula por la ola de calor, las altas temperaturas siguen sin dar tregua en Catalunya. No solo eso, sino que la bolsa de aire africano que abrasa España se mantendrá sobre la Península unos días más. Las masas de aire cálidas, de unos 24 C a 1.500 metros de altura, harán subir la temperatura notablemente y no se descarta que el mercurio bata nuevos récords durante el fin de semana.Seguir leyendo....",
+      "url": "https://www.elperiodico.com/es/tiempo/20250815/meteocat-ola-de-calor-barcelona-cataluna-dv-loc-120618760?utm_source=rss-noticias&amp;utm_medium=feed&amp;utm_campaign=catalunya",
+      "source": "www.elperiodico.com",
+      "published_at": "2025-09-22T12:28:46.429202+00:00",
       "img": "",
       "location": "Cataluña",
-      "category": "educacion"
+      "category": "otros"
     },
     {
-      "title": "Barcelona amplía carriles bici en el Eixample",
-      "summary": "Obras por fases con alternancias de tráfico.",
-      "url": "https://example.com/cataluna-bici",
-      "source": "example.com",
-      "published_at": "2025-09-22T09:10:00Z",
+      "title": "¿Qué supermercados están abiertos hoy, 15 de agosto, en Barcelona y resto de Catalunya? Horario de Lidl, Mercadona y resto de centros",
+      "summary": "El 15 de agosto, festividad de la Asunción de la Virgen, es uno de los festivos más señalados del calendario en España y Catalunya. Este año, además, cae en viernes, lo que permite a muchos españoles disfrutar de un puente de verano. Seguir leyendo....",
+      "url": "https://www.elperiodico.com/es/catalunya/20250815/barcelona-supermercados-abiertos-15-agosto-mercadona-carrefour-dv-loc-120623458?utm_source=rss-noticias&amp;utm_medium=feed&amp;utm_campaign=catalunya",
+      "source": "www.elperiodico.com",
+      "published_at": "2025-09-22T12:28:46.429190+00:00",
       "img": "",
       "location": "Cataluña",
-      "category": "movilidad"
+      "category": "otros"
     },
     {
-      "title": "Industria tecnológica celebra foro en el 22@",
-      "summary": "Startups y fondos se reúnen para abordar IA responsable.",
-      "url": "https://example.com/cataluna-foro",
-      "source": "example.com",
-      "published_at": "2025-09-22T08:15:00Z",
+      "title": "El origen casi secreto de la crema catalana: un error en un convento medieval",
+      "summary": "La gastronomía catalana es reconocida a nivel mundial por su rica diversidad, tradición y sabores mediterráneos. Seguir leyendo....",
+      "url": "https://www.elperiodico.com/es/catalunya/20250815/crema-catalana-origen-cataluna-platos-tipicos-postres-gastronomia-dv-loc-120525396?utm_source=rss-noticias&amp;utm_medium=feed&amp;utm_campaign=catalunya",
+      "source": "www.elperiodico.com",
+      "published_at": "2025-09-22T12:28:46.429178+00:00",
       "img": "",
       "location": "Cataluña",
-      "category": "tecnología"
+      "category": "otros"
     }
   ],
   "espana": [
     {
-      "title": "El BCE mantiene tipos; reacción en hipotecas",
-      "summary": "Analistas esperan estabilización del Euríbor a corto plazo.",
-      "url": "https://example.com/espana-bce",
-      "source": "example.com",
-      "published_at": "2025-09-22T10:00:00Z",
+      "title": "El Supremo mantiene en prisión a Cerdán al persistir el riesgo de destrucción de pruebas",
+      "summary": "El instructor Leopoldo Puente rechaza la petición del libertad del ex secretario de Organización del PSOE. Leer",
+      "url": "https://www.elmundo.es/espana/2025/09/18/68cc0681e85ecece298b459f.html",
+      "source": "e00-elmundo.uecdn.es",
+      "published_at": "2025-09-22T12:28:47.829759+00:00",
       "img": "",
       "location": "ES",
-      "category": "finanzas"
+      "category": "otros"
     },
     {
-      "title": "Rebaja temporal en carburantes por competencia",
-      "summary": "Varias cadenas anuncian descuentos en gasolina y diésel.",
-      "url": "https://example.com/espana-carburantes",
-      "source": "example.com",
-      "published_at": "2025-09-22T09:20:00Z",
+      "title": "Activistas de Sortu colocan dos pancartas en la Basílica de Cuelgamuros para homenajear a etarras fusilados en el franquismo",
+      "summary": "Cuelgan en el exterior del recinto dos lonas con los mensajes 'Ni pudisteis, ni podéis, ni podréis' y 'Gora Euskadi Askatuta' (Viva Euskal Herria Libre) Leer",
+      "url": "https://www.elmundo.es/espana/2025/09/18/68cc0e9b21efa01c4b8b459f.html",
+      "source": "e00-elmundo.uecdn.es",
+      "published_at": "2025-09-22T12:28:47.829751+00:00",
       "img": "",
       "location": "ES",
-      "category": "energía"
+      "category": "otros"
     },
     {
-      "title": "AENA prevé récord de pasajeros este mes",
-      "summary": "Refuerzos en seguridad y mostradores en aeropuertos clave.",
-      "url": "https://example.com/espana-aena",
-      "source": "example.com",
-      "published_at": "2025-09-22T07:50:00Z",
+      "title": "\"Canarias es uno de los destinos más importantes del mundo\"",
+      "summary": "El Foro la España Vertebrada debate sobre el archipiélago como referente de un turismo regenerativo, sostenible ambiental, económica y socialmente Leer",
+      "url": "https://www.elmundo.es/espana/2025/09/18/68cc14fce9cf4a637b8b459f.html",
+      "source": "e00-elmundo.uecdn.es",
+      "published_at": "2025-09-22T12:28:47.829744+00:00",
       "img": "",
       "location": "ES",
-      "category": "negocios"
+      "category": "otros"
     }
   ],
   "rioja": [
     {
-      "title": "La vendimia avanza con buena calidad",
-      "summary": "Cooperativas prevén grados óptimos y producción contenida.",
-      "url": "https://example.com/rioja-vendimia",
-      "source": "example.com",
-      "published_at": "2025-09-22T09:40:00Z",
-      "img": "",
-      "location": "La Rioja",
-      "category": "negocios"
-    },
-    {
-      "title": "Logroño inaugura parque urbano",
-      "summary": "Nueva zona verde con juegos inclusivos y sombra natural.",
-      "url": "https://example.com/rioja-parque",
-      "source": "example.com",
-      "published_at": "2025-09-22T08:05:00Z",
+      "title": "«Cocino recetas sencillas, con producto cercano y que tenga un precio asequible»",
+      "summary": "La catalana afincada en La Rioja ha escrito un nuevo libro de recetas. El primero ha alcanzado once ediciones",
+      "url": "https://www.larioja.com/degusta/nuevo-libro-anna-teres-recetas-faciles-20250913190259-nt.html",
+      "source": "www.larioja.com",
+      "published_at": "2025-09-22T12:28:48.327723+00:00",
       "img": "",
       "location": "La Rioja",
       "category": "otros"
     },
     {
-      "title": "Refuerzo de buses interurbanos el fin de semana",
-      "summary": "Se aumentan frecuencias en líneas con mayor demanda.",
-      "url": "https://example.com/rioja-bus",
-      "source": "example.com",
-      "published_at": "2025-09-22T07:30:00Z",
+      "title": "Sigue la regla de los dos minutos para tener la casa siempre ordenada",
+      "summary": "La idea es hacer en el momento todas esas tareas que se pueden solucionar en menos de 120 segundos",
+      "url": "https://www.larioja.com/vivir/tendencias/sigue-regla-dos-minutos-tener-casa-siempre-20250912075121-ntrc.html",
+      "source": "www.larioja.com",
+      "published_at": "2025-09-22T12:28:48.327720+00:00",
       "img": "",
       "location": "La Rioja",
-      "category": "movilidad"
+      "category": "otros"
+    },
+    {
+      "title": "'Nails', humor blanco y feminismo para elaborar un canto a la libertad",
+      "summary": "«Esta serie es un: 'Por favor, dejadnos en paz y dejadnos ser'», asegura su creadora Araceli Álvarez de Sotomayor",
+      "url": "https://www.larioja.com/pantallas/series/nails-humor-blanco-feminismo-elaborar-canto-libertad-20250916131153-ntrc.html",
+      "source": "www.larioja.com",
+      "published_at": "2025-09-22T12:28:48.327716+00:00",
+      "img": "",
+      "location": "La Rioja",
+      "category": "otros"
     }
   ],
   "global": [
     {
-      "title": "Reunión del G7: agenda climática y seguridad",
-      "summary": "Los líderes abordan transición energética y resiliencia.",
-      "url": "https://example.com/global-g7",
-      "source": "example.com",
-      "published_at": "2025-09-22T11:15:00Z",
+      "title": "Drones vs. Lasers",
+      "summary": "We explore the math problem facing NATO — and one possible solution.",
+      "url": "https://www.nytimes.com/2025/09/19/briefing/nato-drones-russia.html",
+      "source": "rss.nytimes.com",
+      "published_at": "2025-09-22T12:28:48.671762+00:00",
       "img": "",
       "location": "global",
-      "category": "internacional"
+      "category": "otros"
     },
     {
-      "title": "Gigante tecnológico anuncia nueva IA multimodal",
-      "summary": "Capacidades avanzadas para texto, imagen y audio.",
-      "url": "https://example.com/global-ia",
-      "source": "example.com",
-      "published_at": "2025-09-22T10:25:00Z",
+      "title": "Watch: Philippines anti-corruption protests turn violent",
+      "summary": "Thousands of demonstrators took to the streets of the capital Manila, with some clashing with police.",
+      "url": "https://www.bbc.com/news/videos/c3vzz1p1r76o?at_medium=RSS&at_campaign=rss",
+      "source": "feeds.bbci.co.uk",
+      "published_at": "2025-09-22T12:28:48.495525+00:00",
       "img": "",
       "location": "global",
-      "category": "tecnología"
+      "category": "otros"
     },
     {
-      "title": "FMI revisa previsiones de crecimiento",
-      "summary": "Ligera mejora para economías avanzadas; cautela en emergentes.",
-      "url": "https://example.com/global-fmi",
-      "source": "example.com",
-      "published_at": "2025-09-22T08:45:00Z",
+      "title": "BBC's Steve Rosenberg attends 'Russia's answer to Eurovision'",
+      "summary": "Vietnam was among 23 countries competing in a glitzy Russian song contest, revived three years after Russia was banned from Eurovision.",
+      "url": "https://www.bbc.com/news/videos/cvg998q0557o?at_medium=RSS&at_campaign=rss",
+      "source": "feeds.bbci.co.uk",
+      "published_at": "2025-09-22T12:28:48.495521+00:00",
       "img": "",
       "location": "global",
-      "category": "economia"
+      "category": "otros"
     }
   ]
 }
