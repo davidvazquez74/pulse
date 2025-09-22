@@ -56,7 +56,6 @@ jobs:
           }
           MAX = 3
 
-          # ---- helpers
           def fetch(url):
               req = urllib.request.Request(url, headers={"User-Agent":"PulseBot/1.0"})
               with urllib.request.urlopen(req, timeout=25) as r:
@@ -101,7 +100,6 @@ jobs:
                   })
               return items
 
-          # ---- Impact Engine (rules)
           KW = {
             r"(eur[ií]bor|bce|hipoteca|inflaci[oó]n)":       ("finanzas",2,"este mes","vigilar"),
             r"(gasolina|di[eé]sel|petr[oó]leo|electricidad|gas)": ("energía",2,"esta semana","vigilar"),
@@ -197,7 +195,6 @@ jobs:
                  "confidence": conf,
               }
 
-          # ---- Geo filter
           CITIES_CAT = {"barcelona","bcn","girona","gerona","lleida","lerida","tarragona","sabadell","terrassa","badalona","hospitalet","l'hospitalet","mataró","mataro","reus","manresa","figueres","granollers","molins de rei","sitges","sants","eixample","gràcia","gracia"}
           CITIES_RIOJA = {"logroño","logrono","haro","calahorra","arnedo","najera","nàjera","albelda de iregua","albelda","la rioja","rioja"}
           FOREIGN_HINTS = {"estados unidos","eeuu","ee.uu.","francia","alemania","reino unido","uk","china","rusia","ucrania","italia","portugal","méxico","mexico","brasil","japón","japon"}
@@ -228,7 +225,6 @@ jobs:
               region, sc = max(scores.items(), key=lambda kv: kv[1])
               return region if sc>=2 else "global"
 
-          # ---- collect, bucketize, rank, backfill
           union_all=[]; raw_by_cat={}
           for cat, urls in FEEDS.items():
               all_items=[]
@@ -293,18 +289,9 @@ jobs:
             "global":[map_item("global",it) for it in ranked["global"][:MAX]],
           }
 
-          print("Sizes(filtered+impacts):", {k: len(v) for k,v in out.items() if isinstance(v, list)})
           with open("data/latest.json","w",encoding="utf-8") as f:
-              json.dump(out,f,ensure_ascii=False,indent=2)
-          print("Wrote data/latest.json")
+            json.dump(out,f,ensure_ascii=False,indent=2)
           PY
-
-      - name: Show head (debug)
-        run: |
-          echo "----- HEAD data/latest.json -----"
-          head -c 800 data/latest.json || true
-          echo ""
-          echo "--------------------------------"
 
       - name: Upload latest.json artifact
         uses: actions/upload-artifact@v4
@@ -320,7 +307,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           jq '.updated_at = (now | todateiso8601)' data/latest.json > data/latest.tmp && mv data/latest.tmp data/latest.json
           git add data/latest.json
-          git status
           git commit -m "chore: update latest.json $(date -u +%FT%TZ)" || echo "No changes to commit"
           git push || true
-          echo "Pushed data/latest.json"
